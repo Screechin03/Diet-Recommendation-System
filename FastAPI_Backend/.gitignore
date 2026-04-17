@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+# Logs / caches
+*.log
+.pytest_cache/
+.mypy_cache/
+
+# Editor
+.vscode/
+.idea/

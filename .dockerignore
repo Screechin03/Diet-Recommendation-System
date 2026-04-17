@@ -1,0 +1,36 @@
+# Reduce docker build context size (important for Docker Desktop stability)
+
+# VCS / IDE
+.git
+.github
+.vscode
+.DS_Store
+
+# Python
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.mypy_cache
+
+# Node/Next
+nextjs-frontend/node_modules
+nextjs-frontend/.next
+nextjs-frontend/out
+nextjs-frontend/.turbo
+
+# Frontend we don't need in backend image
+nextjs-frontend
+Streamlit_Frontend
+
+# Docs / notebooks / assets
+Assets
+Docs
+**/*.ipynb
+**/*.md
+
+# Data is mounted at runtime for backend
+Data
+
+# Local artifacts
+*.log

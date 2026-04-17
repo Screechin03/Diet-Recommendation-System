@@ -1,0 +1,32 @@
+services:
+  frontend:
+    build:
+      context: ./nextjs-frontend
+      dockerfile: Dockerfile
+    image: nextjs-frontend:latest
+    ports:
+      - 3000:3000
+    networks:
+      - project_network
+    depends_on:
+      - backend
+    environment:
+      - API_BASE_URL=http://backend:8080
+
+
+  backend:
+    build:
+      context: .
+      dockerfile: FastAPI_Backend/Dockerfile
+    image: backend:latest
+    ports:
+      - 8080:8080
+    networks:
+      - project_network
+    volumes:
+      - ./Data:/app/Data:ro
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+networks:
+  project_network:
