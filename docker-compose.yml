@@ -16,8 +16,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: FastAPI_Backend/Dockerfile
+      context: ./FastAPI_Backend
+      dockerfile: Dockerfile
     image: backend:latest
     ports:
       - 8080:8080

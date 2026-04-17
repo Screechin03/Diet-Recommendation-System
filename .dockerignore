@@ -21,7 +21,6 @@ nextjs-frontend/.turbo
 
 # Frontend we don't need in backend image
 nextjs-frontend
-Streamlit_Frontend
 
 # Docs / notebooks / assets
 Assets
