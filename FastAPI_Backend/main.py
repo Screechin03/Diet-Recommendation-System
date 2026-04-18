@@ -15,6 +15,46 @@ from functools import lru_cache
 
 
 import os
+import gzip
+
+
+_REQUIRED_DATASET_COLUMNS = {
+    "RecipeIngredientParts",
+    "RecipeInstructions",
+}
+
+
+def _looks_like_git_lfs_pointer(path: str) -> bool:
+    try:
+        with open(path, "rb") as f:
+            head = f.read(200)
+    except OSError:
+        return False
+
+    try:
+        text = head.decode("utf-8", errors="ignore").strip().lower()
+    except Exception:
+        return False
+
+    return text.startswith("version https://git-lfs.github.com/spec/v1")
+
+
+def _is_gzip_file(path: str) -> bool:
+    try:
+        with open(path, "rb") as f:
+            return f.read(2) == b"\x1f\x8b"
+    except OSError:
+        return False
+
+
+def _read_csv_auto(path: str) -> pd.DataFrame:
+    if _looks_like_git_lfs_pointer(path):
+        raise ValueError("Git LFS pointer file, not a real CSV")
+
+    if _is_gzip_file(path):
+        return pd.read_csv(path, compression="gzip")
+
+    return pd.read_csv(path)
 
 
 def _dataset_candidates() -> List[str]:
@@ -24,13 +64,20 @@ def _dataset_candidates() -> List[str]:
     if env_path:
         candidates.append(env_path)
 
-    # Common container mount path
+    # Common container mount paths
     candidates.append("/app/Data/dataset.csv")
+    candidates.append("/app/Data/dataset1.csv")
 
     # Monorepo layout: ../Data/dataset.csv from this file
     candidates.append(
         os.path.abspath(
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Data", "dataset.csv")
+        )
+    )
+
+    candidates.append(
+        os.path.abspath(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Data", "dataset1.csv")
         )
     )
 
@@ -41,13 +88,28 @@ def _dataset_candidates() -> List[str]:
 def get_dataset() -> pd.DataFrame:
     for path in _dataset_candidates():
         try:
-            if path and os.path.exists(path):
-                return pd.read_csv(path)
-        except (OSError, ValueError):
+            if not path or not os.path.exists(path):
+                continue
+
+            df = _read_csv_auto(path)
+
+            # Validate expected schema to avoid hard-to-debug 500s later.
+            missing = _REQUIRED_DATASET_COLUMNS.difference(set(df.columns))
+            if missing:
+                continue
+
+            # The ML pipeline currently expects at least 15 columns due to
+            # positional slicing in model.py (iloc[:, 6:15]).
+            if df.shape[1] < 15:
+                continue
+
+            return df
+        except (OSError, ValueError, UnicodeDecodeError, gzip.BadGzipFile):
             continue
 
     raise RuntimeError(
-        "dataset.csv not found. Set DATASET_PATH or mount Data/ to /app/Data in Docker."
+        "Dataset not found or invalid. Set DATASET_PATH to a valid recipes CSV (or gzipped CSV), "
+        "or mount Data/ to /app/Data in Docker. Required columns: RecipeIngredientParts, RecipeInstructions."
     )
 
 app = FastAPI()

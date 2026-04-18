@@ -78,6 +78,8 @@ The project is created with:
 
 ## :whale: Setup
 
+Local (non-Docker) dev workflow: see `RUN_SERVICES.md`.
+
 ### Run it locally
 #### Clone the repo
 ```

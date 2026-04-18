@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import type { Recipe } from "@/lib/types";
 import { recipeImageUrl } from "@/lib/utils";
@@ -11,18 +12,20 @@ function fmtNum(n: unknown, digits = 0): string {
 }
 
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
-  const img = recipeImageUrl(recipe.Name);
+  const initialSrc = useMemo(() => recipeImageUrl(recipe.Name), [recipe.Name]);
+  const [src, setSrc] = useState<string>(initialSrc);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="relative h-44 w-full bg-zinc-100 dark:bg-zinc-900">
         <Image
-          src={img}
+          src={src}
           alt={recipe.Name}
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 33vw"
           unoptimized
+          onError={() => setSrc("/recipe-placeholder.svg")}
         />
       </div>
       <div className="p-5">
