@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import type { Recipe } from "@/lib/types";
-import { recipeImageUrl } from "@/lib/utils";
+import { recipeImageCandidates } from "@/lib/utils";
 
 function fmtNum(n: unknown, digits = 0): string {
   const num = typeof n === "number" ? n : Number(n);
@@ -12,8 +12,66 @@ function fmtNum(n: unknown, digits = 0): string {
 }
 
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
-  const initialSrc = useMemo(() => recipeImageUrl(recipe.Name), [recipe.Name]);
-  const [src, setSrc] = useState<string>(initialSrc);
+  const strictRecipeImages = (process.env.NEXT_PUBLIC_STRICT_RECIPE_IMAGES ?? "true") !== "false";
+  const candidates = useMemo(
+    () => recipeImageCandidates(recipe.Name, recipe.RecipeIngredientParts ?? []),
+    [recipe.Name, recipe.RecipeIngredientParts],
+  );
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
+  const [resolvedSource, setResolvedSource] = useState<string | null>(null);
+  const [imageIndex, setImageIndex] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setResolvedSrc(null);
+    setResolvedSource(null);
+
+    const params = new URLSearchParams({
+      name: recipe.Name,
+      ingredients: (recipe.RecipeIngredientParts ?? []).join(","),
+    });
+
+    fetch(`/api/recipe_image?${params.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const data = (await res.json()) as { imageUrl?: string | null; source?: string | null };
+        return { imageUrl: data.imageUrl ?? null, source: data.source ?? null };
+      })
+      .then((result) => {
+        if (!cancelled && result?.imageUrl) {
+          setResolvedSrc(result.imageUrl);
+          setResolvedSource(result.source ?? null);
+          setImageIndex(0);
+        }
+      })
+      .catch(() => {
+        // Fallback candidates already handled below.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recipe.Name, recipe.RecipeIngredientParts]);
+
+  const src = strictRecipeImages
+    ? (resolvedSrc ?? "/recipe-placeholder.svg")
+    : (resolvedSrc ?? candidates[imageIndex] ?? "/recipe-placeholder.svg");
+
+  function onImageError() {
+    if (resolvedSrc) {
+      setResolvedSrc(null);
+      setResolvedSource(null);
+      if (strictRecipeImages) return;
+      return;
+    }
+
+    if (strictRecipeImages) return;
+
+    setImageIndex((prev) => {
+      if (prev < candidates.length - 1) return prev + 1;
+      return candidates.length;
+    });
+  }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -25,8 +83,13 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 33vw"
           unoptimized
-          onError={() => setSrc("/recipe-placeholder.svg")}
+          onError={onImageError}
         />
+        {resolvedSource ? (
+          <div className="absolute left-2 top-2 rounded bg-black/65 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-white">
+            {resolvedSource.startsWith("gemini-generated") ? "Gemini" : "Fallback"}
+          </div>
+        ) : null}
       </div>
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
