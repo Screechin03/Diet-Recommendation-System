@@ -107,3 +107,12 @@ PS: You should have Docker Desktop (with Compose) already installed.
   url          = {https://doi.org/10.5281/zenodo.12507829}
 }
 ```
+### test run
+```
+curl -sS -X POST "http://localhost:8080/prescription_report" \
+  -F "file=@Data/images/9.jpg;type=image/jpeg" \
+  -F "dietary_preferences=vegetarian" \
+  -F "allergies=peanut" \
+  -F "goals=balanced diet" \
+  -F "include_diet_plan=true" | jq .
+```
