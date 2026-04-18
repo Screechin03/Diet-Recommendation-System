@@ -1,7 +1,8 @@
 const DEFAULT_BACKEND_URL = "http://localhost:8080";
 
 export function getBackendUrl(): string {
-  return process.env.BACKEND_URL?.trim() || DEFAULT_BACKEND_URL;
+  const raw = process.env.BACKEND_URL?.trim() || DEFAULT_BACKEND_URL;
+  return raw.replace(/\/+$/, "");
 }
 
 export function withTimeout(ms: number): { signal: AbortSignal; cancel: () => void } {

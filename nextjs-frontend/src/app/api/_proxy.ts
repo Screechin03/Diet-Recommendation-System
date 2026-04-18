@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
+function normalizeBaseUrl(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
 export function apiBaseUrl(): string {
-  return process.env.API_BASE_URL ?? "http://localhost:8080";
+  return normalizeBaseUrl(process.env.API_BASE_URL ?? "http://localhost:8080");
 }
 
 export async function proxyJson(
