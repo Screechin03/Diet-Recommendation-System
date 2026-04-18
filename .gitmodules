@@ -1,0 +1,3 @@
+[submodule "h_recog"]
+	path = h_recog
+	url = https://github.com/TakeASwing-420/h_recog.git
