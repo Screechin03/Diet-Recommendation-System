@@ -4,11 +4,22 @@ import { useMemo, useState } from "react";
 import type { PredictionIn, PredictionOut, PregnancyInfo, Recipe } from "@/lib/types";
 import { parseCsvList, safeJson } from "@/lib/utils";
 import { RecipeCard } from "@/components/RecipeCard";
+import { useAuth } from "@/components/AuthProvider";
+import {
+  recordRecipeHistoryForUser,
+  saveRecipeForUser,
+} from "@/lib/supabaseUserData";
 
 const inputClass =
   "h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:ring-zinc-700";
 const textAreaClass =
   "min-h-24 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:ring-zinc-700";
+
+interface RefinedSummary {
+  title?: string;
+  summary?: string;
+  bullets?: string[];
+}
 
 function defaultPregnancyInfo(): PregnancyInfo {
   return {
@@ -31,6 +42,7 @@ function defaultPregnancyInfo(): PregnancyInfo {
 }
 
 export default function RecipeFinderPage() {
+  const { user } = useAuth();
   const [pregnancy, setPregnancy] = useState<PregnancyInfo>(() => defaultPregnancyInfo());
   const [ingredientsCsv, setIngredientsCsv] = useState<string>("chicken, spinach");
   const [neighbors, setNeighbors] = useState<number>(5);
@@ -39,7 +51,9 @@ export default function RecipeFinderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
-  const [refined, setRefined] = useState<any>(null);
+  const [refined, setRefined] = useState<RefinedSummary | null>(null);
+  const [savingRecipeName, setSavingRecipeName] = useState<string | null>(null);
+  const [savedByName, setSavedByName] = useState<Record<string, boolean>>({});
 
   const requestBody = useMemo<PredictionIn>(() => {
     return {
@@ -69,6 +83,13 @@ export default function RecipeFinderPage() {
 
       const data = await safeJson<PredictionOut>(res);
       setRecipes(data.output ?? null);
+      setSavedByName({});
+
+      if (user && data.output && data.output.length) {
+        recordRecipeHistoryForUser(user.id, "recipe-finder", data.output).catch(() => {
+          // Keep recommendation flow responsive if history insert fails.
+        });
+      }
 
       if (useGemini && data.output && data.output.length) {
         const refinePayload = {
@@ -101,6 +122,25 @@ export default function RecipeFinderPage() {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveRecipe(recipe: Recipe) {
+    if (!user) {
+      setError("Log in first to save recipes.");
+      return;
+    }
+
+    setSavingRecipeName(recipe.Name);
+    setError(null);
+
+    try {
+      await saveRecipeForUser(user.id, recipe);
+      setSavedByName((prev) => ({ ...prev, [recipe.Name]: true }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save recipe");
+    } finally {
+      setSavingRecipeName(null);
     }
   }
 
@@ -173,7 +213,10 @@ export default function RecipeFinderPage() {
                   className={inputClass}
                   value={pregnancy.activity_level ?? "moderate"}
                   onChange={(e) =>
-                    setPregnancy((p) => ({ ...p, activity_level: e.target.value as any }))
+                    setPregnancy((p) => ({
+                      ...p,
+                      activity_level: e.target.value as PregnancyInfo["activity_level"],
+                    }))
                   }
                 >
                   <option value="low">Low</option>
@@ -314,7 +357,7 @@ export default function RecipeFinderPage() {
               ) : null}
               {Array.isArray(refined.bullets) && refined.bullets.length ? (
                 <ul className="mt-3 list-disc space-y-1 pl-5 text-zinc-700 dark:text-zinc-300">
-                  {refined.bullets.slice(0, 10).map((b: any, idx: number) => (
+                  {refined.bullets.slice(0, 10).map((b, idx) => (
                     <li key={idx}>{String(b)}</li>
                   ))}
                 </ul>
@@ -333,7 +376,13 @@ export default function RecipeFinderPage() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {recipes.map((r) => (
-                <RecipeCard key={r.Name} recipe={r} />
+                <RecipeCard
+                  key={r.Name}
+                  recipe={r}
+                  onSave={handleSaveRecipe}
+                  isSaving={savingRecipeName === r.Name}
+                  isSaved={!!savedByName[r.Name]}
+                />
               ))}
             </div>
           )}

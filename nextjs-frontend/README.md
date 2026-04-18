@@ -1,5 +1,15 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Supabase auth + user data
+
+This frontend now includes:
+
+- Email/password sign-up and login
+- Save recipe per logged-in user
+- Recommendation history per logged-in user
+
+See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for SQL schema, RLS policies, and environment setup.
+
 ## Getting Started
 
 First, run the development server:

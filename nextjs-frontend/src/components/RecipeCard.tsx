@@ -11,7 +11,14 @@ function fmtNum(n: unknown, digits = 0): string {
   return num.toFixed(digits);
 }
 
-export function RecipeCard({ recipe }: { recipe: Recipe }) {
+interface RecipeCardProps {
+  recipe: Recipe;
+  onSave?: (recipe: Recipe) => void | Promise<void>;
+  isSaving?: boolean;
+  isSaved?: boolean;
+}
+
+export function RecipeCard({ recipe, onSave, isSaving = false, isSaved = false }: RecipeCardProps) {
   const strictRecipeImages = (process.env.NEXT_PUBLIC_STRICT_RECIPE_IMAGES ?? "true") !== "false";
   const candidates = useMemo(
     () => recipeImageCandidates(recipe.Name, recipe.RecipeIngredientParts ?? []),
@@ -23,8 +30,6 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
 
   useEffect(() => {
     let cancelled = false;
-    setResolvedSrc(null);
-    setResolvedSource(null);
 
     const params = new URLSearchParams({
       name: recipe.Name,
@@ -42,10 +47,18 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
           setResolvedSrc(result.imageUrl);
           setResolvedSource(result.source ?? null);
           setImageIndex(0);
+        } else if (!cancelled) {
+          setResolvedSrc(null);
+          setResolvedSource(null);
+          setImageIndex(0);
         }
       })
       .catch(() => {
-        // Fallback candidates already handled below.
+        if (!cancelled) {
+          setResolvedSrc(null);
+          setResolvedSource(null);
+          setImageIndex(0);
+        }
       });
 
     return () => {
@@ -161,6 +174,16 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
             </div>
           </div>
         </details>
+
+        {onSave ? (
+          <button
+            onClick={() => onSave(recipe)}
+            disabled={isSaving}
+            className="mt-4 h-9 rounded-lg border border-zinc-200 px-3 text-sm font-medium hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          >
+            {isSaved ? "Saved" : isSaving ? "Saving..." : "Save recipe"}
+          </button>
+        ) : null}
       </div>
     </div>
   );
