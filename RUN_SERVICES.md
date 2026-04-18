@@ -78,6 +78,14 @@ Create/edit `nextjs-frontend/.env`:
 API_BASE_URL=http://localhost:8080
 # Optional: choose recipe image provider
 # NEXT_PUBLIC_IMAGE_PROVIDER=loremflickr
+
+# Optional: Gemini-generated recipe images (recommended for accuracy)
+# Used server-side by `nextjs-frontend/src/app/api/recipe_image/route.ts` (NOT exposed to the browser)
+GEMINI_API_KEY=YOUR_GEMINI_KEY
+# Optional: override the image-capable model
+# GEMINI_IMAGE_MODEL=gemini-2.0-flash-preview-image-generation
+# Optional: if true, disables non-Gemini fallbacks (useful to confirm Gemini is working)
+# GEMINI_IMAGE_REQUIRED=false
 ```
 
 ### Start dev server

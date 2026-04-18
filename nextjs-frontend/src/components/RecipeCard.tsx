@@ -24,9 +24,19 @@ export function RecipeCard({ recipe, onSave, isSaving = false, isSaved = false }
     () => recipeImageCandidates(recipe.Name, recipe.RecipeIngredientParts ?? []),
     [recipe.Name, recipe.RecipeIngredientParts],
   );
-  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
-  const [resolvedSource, setResolvedSource] = useState<string | null>(null);
-  const [imageIndex, setImageIndex] = useState(0);
+  const [resolved, setResolved] = useState<{ name: string; src: string | null; source: string | null }>(() => ({
+    name: recipe.Name,
+    src: null,
+    source: null,
+  }));
+  const [fallback, setFallback] = useState<{ name: string; index: number }>(() => ({
+    name: recipe.Name,
+    index: 0,
+  }));
+
+  const resolvedSrc = resolved.name === recipe.Name ? resolved.src : null;
+  const resolvedSource = resolved.name === recipe.Name ? resolved.source : null;
+  const imageIndex = fallback.name === recipe.Name ? fallback.index : 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -44,20 +54,17 @@ export function RecipeCard({ recipe, onSave, isSaving = false, isSaved = false }
       })
       .then((result) => {
         if (!cancelled && result?.imageUrl) {
-          setResolvedSrc(result.imageUrl);
-          setResolvedSource(result.source ?? null);
-          setImageIndex(0);
+          setResolved({ name: recipe.Name, src: result.imageUrl, source: result.source ?? null });
+          setFallback({ name: recipe.Name, index: 0 });
         } else if (!cancelled) {
-          setResolvedSrc(null);
-          setResolvedSource(null);
-          setImageIndex(0);
+          setResolved({ name: recipe.Name, src: null, source: null });
+          setFallback({ name: recipe.Name, index: 0 });
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setResolvedSrc(null);
-          setResolvedSource(null);
-          setImageIndex(0);
+          setResolved({ name: recipe.Name, src: null, source: null });
+          setFallback({ name: recipe.Name, index: 0 });
         }
       });
 
@@ -72,17 +79,17 @@ export function RecipeCard({ recipe, onSave, isSaving = false, isSaved = false }
 
   function onImageError() {
     if (resolvedSrc) {
-      setResolvedSrc(null);
-      setResolvedSource(null);
+      setResolved({ name: recipe.Name, src: null, source: null });
       if (strictRecipeImages) return;
       return;
     }
 
     if (strictRecipeImages) return;
 
-    setImageIndex((prev) => {
-      if (prev < candidates.length - 1) return prev + 1;
-      return candidates.length;
+    setFallback((prev) => {
+      const currentIndex = prev.name === recipe.Name ? prev.index : 0;
+      const nextIndex = currentIndex < candidates.length - 1 ? currentIndex + 1 : candidates.length;
+      return { name: recipe.Name, index: nextIndex };
     });
   }
 

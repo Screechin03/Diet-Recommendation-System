@@ -1,6 +1,6 @@
 export function parseCsvList(value: string): string[] {
   return value
-    .split(",")
+    .split(/[\n,]/g)
     .map((v) => v.trim())
     .filter(Boolean);
 }

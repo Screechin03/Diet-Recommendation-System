@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { generateContent, listGenerateContentModels } from "../_gemini";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,20 @@ function geminiApiKey(): string {
 }
 
 function geminiModel(): string {
-  return process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
+  return process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+}
+
+function geminiCandidateModels(): string[] {
+  const envModel = (process.env.GEMINI_MODEL ?? "").trim();
+  const candidates = [
+    envModel,
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-exp",
+    "gemini-2.0-pro",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro-latest",
+  ].filter(Boolean);
+  return [...new Set(candidates)];
 }
 
 function buildPrompt(kind: RefineKind, payload: unknown): string {
@@ -54,61 +68,65 @@ function buildPrompt(kind: RefineKind, payload: unknown): string {
 
 async function callGemini(prompt: string) {
   const key = geminiApiKey();
-  const model = geminiModel();
+  const discovered = await listGenerateContentModels(key);
+  const models = [...new Set([...geminiCandidateModels(), ...discovered])];
 
-  // Generative Language API (Gemini). Model names can vary by account; expose GEMINI_MODEL.
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    model,
-  )}:generateContent?key=${encodeURIComponent(key)}`;
+  let lastError = "";
+  let lastStatus = 0;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
+  const body = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 512,
     },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 512,
-      },
-    }),
-  });
+  };
 
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`Gemini error ${res.status}: ${text}`);
+  for (const model of models) {
+    const result = await generateContent(key, model, body);
+    if (!result.ok) {
+      lastStatus = result.status;
+      lastError = result.text;
+      continue;
+    }
+
+    const data = result.json;
+    const candidateText: string | undefined =
+      data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("\n") ??
+      data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!candidateText) {
+      lastStatus = 502;
+      lastError = "Gemini returned no text";
+      continue;
+    }
+
+    const cleaned = candidateText
+      .trim()
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start >= 0 && end > start) {
+        const maybeJson = cleaned.slice(start, end + 1);
+        try {
+          return JSON.parse(maybeJson);
+        } catch {
+          // fall through
+        }
+      }
+
+      return { title: "Refined", summary: cleaned, bullets: [] };
+    }
   }
 
-  let data: any;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`Unexpected Gemini response: ${text.slice(0, 500)}`);
-  }
-
-  const candidateText: string | undefined =
-    data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("\n") ??
-    data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!candidateText) {
-    throw new Error("Gemini returned no text");
-  }
-
-  // Gemini may wrap JSON in code fences; strip if present.
-  const cleaned = candidateText
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```$/i, "")
-    .trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    // Fallback: return as plain text
-    return { title: "Refined", summary: cleaned, bullets: [] };
-  }
+  throw new Error(`Gemini error ${lastStatus}: ${String(lastError).slice(0, 1200)}`);
 }
 
 export async function POST(req: Request) {
