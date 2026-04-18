@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { PredictionIn, PredictionOut, PregnancyInfo, Recipe } from "@/lib/types";
 import { parseCsvList, safeJson } from "@/lib/utils";
 import { RecipeCard } from "@/components/RecipeCard";
+import { DietaryRestrictionsChecklist } from "@/components/DietaryRestrictionsChecklist";
 
 const inputClass =
   "h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:ring-zinc-700";
@@ -254,23 +255,21 @@ export default function DietPlannerPage() {
               </label>
             </div>
 
-            <label className="grid gap-1">
-              <span className="text-sm font-medium">Dietary restrictions</span>
-              <textarea
-                className={textAreaClass}
-                placeholder="Vegan, Gluten-free, Dairy-free"
-                value={(pregnancy.dietary_restrictions ?? []).join(", ")}
-                onChange={(e) =>
+            <div className="grid gap-2">
+              <div className="text-sm font-medium">Dietary restrictions</div>
+              <DietaryRestrictionsChecklist
+                value={pregnancy.dietary_restrictions}
+                onChange={(next) =>
                   setPregnancy((p) => ({
                     ...p,
-                    dietary_restrictions: parseCsvList(e.target.value),
+                    dietary_restrictions: next,
                   }))
                 }
               />
               <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                Comma-separated. Matches backend filters (e.g. Vegan/Vegetarian/Gluten-free/Dairy-free/Nut-free).
+                These are enforced server-side (filtering + substitutions when needed).
               </span>
-            </label>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-1">

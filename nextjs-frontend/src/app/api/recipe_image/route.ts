@@ -8,6 +8,24 @@ type ResolvedImage = {
   title?: string | null;
 };
 
+type GeminiAttemptDebug = {
+  model: string;
+  ok: boolean;
+  status?: number;
+  error?: string;
+  hasImage?: boolean;
+  usedResponseModalities?: string[];
+};
+
+type ResolvedImageResponse = ResolvedImage & {
+  debug?: {
+    geminiKeyPresent: boolean;
+    geminiOnlyMode: boolean;
+    candidateModels: string[];
+    attempts: GeminiAttemptDebug[];
+  };
+};
+
 type MealDbItem = {
   idMeal?: string;
   strMeal?: string;
@@ -32,6 +50,12 @@ type Candidate = {
 
 const CACHE_TTL_MS = 1000 * 60 * 60 * 6;
 const resultCache = new Map<string, { expiresAt: number; payload: ResolvedImage }>();
+
+function debugEnabled(url: URL): boolean {
+  const fromQuery = (url.searchParams.get("debug") ?? "").trim() === "1";
+  const fromEnv = (process.env.RECIPE_IMAGE_DEBUG ?? "").trim().toLowerCase() === "true";
+  return fromQuery || fromEnv;
+}
 
 function geminiApiKey(): string | null {
   const key = process.env.GEMINI_API_KEY?.trim();
@@ -204,48 +228,72 @@ async function callGeminiImageModel(
   key: string,
   recipeName: string,
   ingredientsRaw: string,
+  debugAttempts?: GeminiAttemptDebug[],
 ): Promise<string | null> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     model,
   )}:generateContent?key=${encodeURIComponent(key)}`;
 
   const prompt = [
-    "Generate a realistic food photograph.",
+    "Generate a photorealistic, high-quality food photograph.",
     `Dish name: ${recipeName}`,
     ingredientsRaw ? `Key ingredients: ${ingredientsRaw}` : "",
-    "Top-down or 45-degree plate shot.",
-    "No people, no packaging, no labels, no text, no logos.",
-    "Single finished dish only.",
+    "Single finished dish plated for serving.",
+    "Top-down or 45-degree plate shot with natural lighting.",
+    "No people, no hands, no packaging, no labels, no text, no logos, no watermarks.",
+    "No collage, no multiple dishes, no utensils in focus.",
   ]
     .filter(Boolean)
     .join("\n");
 
-  const reqBodies = [
+  const reqBodies: Array<{ body: unknown; responseModalities: string[] }> = [
     {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseModalities: ["IMAGE", "TEXT"],
+      responseModalities: ["IMAGE"],
+      body: {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["IMAGE"],
+          temperature: 0.4,
+        },
       },
     },
     {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseModalities: ["IMAGE"],
+      responseModalities: ["IMAGE", "TEXT"],
+      body: {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["IMAGE", "TEXT"],
+          temperature: 0.4,
+        },
       },
     },
   ];
 
-  for (const body of reqBodies) {
+  let lastStatus: number | undefined;
+  let lastError: string | undefined;
+  let lastOk = false;
+  let lastHasImage = false;
+  let lastModalities: string[] | undefined;
+
+  for (const attempt of reqBodies) {
+    lastModalities = attempt.responseModalities;
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(attempt.body),
       cache: "no-store",
     });
 
-    if (!res.ok) continue;
+    lastStatus = res.status;
+    lastOk = res.ok;
+
+    if (!res.ok) {
+      const text = await res.text();
+      lastError = text.slice(0, 1200);
+      continue;
+    }
 
     const data = (await res.json()) as {
       candidates?: Array<{
@@ -272,9 +320,24 @@ async function callGeminiImageModel(
       const b64 = camel?.data ?? snake?.data;
 
       if (mime?.startsWith("image/") && b64) {
+        lastHasImage = true;
         return `data:${mime};base64,${b64}`;
       }
     }
+
+    // Sometimes the API returns 200 with no inline image.
+    lastError = lastError ?? "OK response but no inline image data returned.";
+  }
+
+  if (debugAttempts) {
+    debugAttempts.push({
+      model,
+      ok: lastOk,
+      status: lastStatus,
+      error: lastError,
+      hasImage: lastHasImage,
+      usedResponseModalities: lastModalities,
+    });
   }
 
   return null;
@@ -283,12 +346,13 @@ async function callGeminiImageModel(
 async function fetchFromGemini(
   recipeName: string,
   ingredientsRaw: string,
+  debugAttempts?: GeminiAttemptDebug[],
 ): Promise<{ imageUrl: string | null; model: string | null }> {
   const key = geminiApiKey();
   if (!key) return { imageUrl: null, model: null };
 
   for (const model of geminiCandidateModels()) {
-    const imageUrl = await callGeminiImageModel(model, key, recipeName, ingredientsRaw);
+    const imageUrl = await callGeminiImageModel(model, key, recipeName, ingredientsRaw, debugAttempts);
     if (imageUrl) return { imageUrl, model };
   }
 
@@ -300,29 +364,49 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const recipeName = (url.searchParams.get("name") ?? "").trim();
     const ingredientsRaw = (url.searchParams.get("ingredients") ?? "").trim();
+    const wantDebug = debugEnabled(url);
+    const geminiAttempts: GeminiAttemptDebug[] = [];
 
     if (!recipeName) {
       return NextResponse.json({ imageUrl: null, source: null });
     }
 
-    const cacheKey = `v2::${recipeName}||${ingredientsRaw}`;
-    const cached = getCached(cacheKey);
+    const cacheKey = `v3::${recipeName}||${ingredientsRaw}`;
+    const cached = wantDebug ? null : getCached(cacheKey);
     if (cached) return NextResponse.json(cached);
 
-    const gemini = await fetchFromGemini(recipeName, ingredientsRaw);
+    const gemini = await fetchFromGemini(recipeName, ingredientsRaw, wantDebug ? geminiAttempts : undefined);
     if (gemini.imageUrl) {
-      const payload: ResolvedImage = {
+      const payload: ResolvedImageResponse = {
         imageUrl: gemini.imageUrl,
         source: `gemini-generated:${gemini.model ?? "unknown"}`,
         title: recipeName,
       };
-      setCached(cacheKey, payload);
+      if (wantDebug) {
+        payload.debug = {
+          geminiKeyPresent: Boolean(geminiApiKey()),
+          geminiOnlyMode: geminiOnlyMode(),
+          candidateModels: geminiCandidateModels(),
+          attempts: geminiAttempts,
+        };
+      } else {
+        setCached(cacheKey, payload);
+      }
       return NextResponse.json(payload);
     }
 
     if (geminiOnlyMode()) {
-      const payload: ResolvedImage = { imageUrl: null, source: "gemini-unavailable", title: recipeName };
-      setCached(cacheKey, payload);
+      const payload: ResolvedImageResponse = { imageUrl: null, source: "gemini-unavailable", title: recipeName };
+      if (wantDebug) {
+        payload.debug = {
+          geminiKeyPresent: Boolean(geminiApiKey()),
+          geminiOnlyMode: geminiOnlyMode(),
+          candidateModels: geminiCandidateModels(),
+          attempts: geminiAttempts,
+        };
+      } else {
+        setCached(cacheKey, payload);
+      }
       return NextResponse.json(payload);
     }
 
@@ -419,8 +503,17 @@ export async function GET(req: Request) {
       return NextResponse.json(payload);
     }
 
-    const payload: ResolvedImage = { imageUrl: null, source: null, title: null };
-    setCached(cacheKey, payload);
+    const payload: ResolvedImageResponse = { imageUrl: null, source: null, title: null };
+    if (wantDebug) {
+      payload.debug = {
+        geminiKeyPresent: Boolean(geminiApiKey()),
+        geminiOnlyMode: geminiOnlyMode(),
+        candidateModels: geminiCandidateModels(),
+        attempts: geminiAttempts,
+      };
+    } else {
+      setCached(cacheKey, payload);
+    }
     return NextResponse.json(payload);
   } catch {
     return NextResponse.json({ imageUrl: null, source: null });

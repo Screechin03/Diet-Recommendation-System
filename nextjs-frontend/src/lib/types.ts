@@ -50,6 +50,13 @@ export interface Recipe {
 
 export interface PredictionOut {
   output: Recipe[] | null;
+  meta?: {
+    ingredients_used?: string[];
+    ingredient_corrections?: Array<{ from: string; to: string; reason?: string }>;
+    gemini_used?: boolean;
+    dietary_restrictions_applied?: string[];
+    substitutions?: Array<{ from: string; to: string; reason?: string }>;
+  };
 }
 
 export interface HealthAnalyticsInput {

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { PredictionIn, PredictionOut, PregnancyInfo, Recipe } from "@/lib/types";
 import { parseCsvList, safeJson } from "@/lib/utils";
 import { RecipeCard } from "@/components/RecipeCard";
+import { DietaryRestrictionsChecklist } from "@/components/DietaryRestrictionsChecklist";
 
 const inputClass =
   "h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:ring-zinc-700";
@@ -40,6 +41,7 @@ export default function RecipeFinderPage() {
   const [error, setError] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
   const [refined, setRefined] = useState<any>(null);
+  const [meta, setMeta] = useState<PredictionOut["meta"] | null>(null);
 
   const requestBody = useMemo<PredictionIn>(() => {
     return {
@@ -54,6 +56,7 @@ export default function RecipeFinderPage() {
     setError(null);
     setRecipes(null);
     setRefined(null);
+    setMeta(null);
 
     try {
       const res = await fetch("/api/predict", {
@@ -69,6 +72,7 @@ export default function RecipeFinderPage() {
 
       const data = await safeJson<PredictionOut>(res);
       setRecipes(data.output ?? null);
+      setMeta(data.meta ?? null);
 
       if (useGemini && data.output && data.output.length) {
         const refinePayload = {
@@ -138,20 +142,18 @@ export default function RecipeFinderPage() {
               </span>
             </label>
 
-            <label className="grid gap-1">
-              <span className="text-sm font-medium">Dietary restrictions</span>
-              <textarea
-                className={textAreaClass}
-                value={(pregnancy.dietary_restrictions ?? []).join(", ")}
-                onChange={(e) =>
+            <div className="grid gap-2">
+              <div className="text-sm font-medium">Dietary restrictions</div>
+              <DietaryRestrictionsChecklist
+                value={pregnancy.dietary_restrictions}
+                onChange={(next) =>
                   setPregnancy((p) => ({
                     ...p,
-                    dietary_restrictions: parseCsvList(e.target.value),
+                    dietary_restrictions: next,
                   }))
                 }
-                placeholder="Vegan, Gluten-free"
               />
-            </label>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-1">
@@ -306,6 +308,50 @@ export default function RecipeFinderPage() {
         </section>
 
         <section className="grid gap-4">
+          {meta?.ingredient_corrections?.length ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                Adjusted ingredient keywords
+              </div>
+              <div className="mt-1 text-zinc-700 dark:text-zinc-300">
+                {meta.ingredient_corrections.slice(0, 6).map((c) => `${c.from} → ${c.to}`).join(", ")}
+              </div>
+              {meta.ingredients_used?.length ? (
+                <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Searching with: {meta.ingredients_used.join(", ")}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {meta?.substitutions?.length ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                Applied dietary substitutions
+              </div>
+              <div className="mt-1 text-zinc-700 dark:text-zinc-300">
+                {meta.substitutions.slice(0, 6).map((s) => `${s.from} → ${s.to}`).join(", ")}
+              </div>
+              {meta.ingredients_used?.length ? (
+                <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Searching with: {meta.ingredients_used.join(", ")}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {meta?.dietary_restrictions_applied?.length ? (
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 shadow-sm dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-100">
+              Dietary filters applied: {meta.dietary_restrictions_applied.join(", ")}
+            </div>
+          ) : null}
+
+          {meta?.dietary_restrictions_applied?.includes("vegan") ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100">
+              Vegan mode: recipes with dairy/eggs/meat are filtered out.
+            </div>
+          ) : null}
+
           {refined ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
               <div className="text-base font-semibold">{String(refined.title ?? "Refined summary")}</div>
@@ -328,7 +374,7 @@ export default function RecipeFinderPage() {
             </div>
           ) : recipes.length === 0 ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-700 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-              No recipes returned. Try different keywords.
+              No recipes matched those ingredients. Try a corrected spelling or different keywords.
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
