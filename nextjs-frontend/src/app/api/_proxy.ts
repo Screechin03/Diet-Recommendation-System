@@ -5,7 +5,23 @@ function normalizeBaseUrl(url: string): string {
 }
 
 export function apiBaseUrl(): string {
-  return normalizeBaseUrl(process.env.API_BASE_URL ?? "http://localhost:8080");
+  const configured = process.env.API_BASE_URL ?? process.env.BACKEND_URL;
+
+  if (configured && configured.trim()) {
+    return normalizeBaseUrl(configured);
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error("Missing API_BASE_URL (or BACKEND_URL) in environment variables");
+  }
+
+  return "http://localhost:8080";
+}
+
+function backendTimeoutMs(): number {
+  const raw = Number(process.env.BACKEND_TIMEOUT_MS ?? "25000");
+  if (!Number.isFinite(raw) || raw <= 0) return 25000;
+  return Math.floor(raw);
 }
 
 export async function proxyJson(
@@ -13,15 +29,23 @@ export async function proxyJson(
   targetUrl: string,
   init?: RequestInit,
 ): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), backendTimeoutMs());
   const headers = new Headers(init?.headers);
   headers.set("content-type", "application/json");
 
-  const res = await fetch(targetUrl, {
-    ...init,
-    headers,
-    cache: "no-store",
-    body: init?.body ?? (req.method === "GET" ? undefined : await req.text()),
-  });
+  let res: Response;
+  try {
+    res = await fetch(targetUrl, {
+      ...init,
+      headers,
+      cache: "no-store",
+      signal: controller.signal,
+      body: init?.body ?? (req.method === "GET" ? undefined : await req.text()),
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const contentType = res.headers.get("content-type") ?? "application/json";
   const bodyText = await res.text();

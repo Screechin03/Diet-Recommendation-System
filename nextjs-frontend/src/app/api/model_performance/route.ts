@@ -1,5 +1,7 @@
 import { apiBaseUrl, jsonError, proxyJson } from "../_proxy";
 
+export const maxDuration = 60;
+
 export async function GET(req: Request) {
   try {
     const targetUrl = `${apiBaseUrl()}/model_performance`;

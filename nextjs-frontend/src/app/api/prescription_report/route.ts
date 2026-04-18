@@ -1,5 +1,7 @@
 import { apiBaseUrl } from "../_proxy";
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   const formData = await req.formData();
 

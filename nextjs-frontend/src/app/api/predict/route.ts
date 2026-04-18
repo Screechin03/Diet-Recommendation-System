@@ -1,5 +1,7 @@
 import { apiBaseUrl, jsonError, proxyJson } from "../_proxy";
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const targetUrl = `${apiBaseUrl()}/predict/`;
