@@ -405,11 +405,43 @@ class PregnancyRiskPredictor:
 def initialize_pregnancy_predictor():
     """Initialize the pregnancy risk predictor"""
     predictor = PregnancyRiskPredictor()
-    
-    # Define the path to the health data
-    data_path = os.path.join(os.path.dirname(__file__), '..', 'Data', 'health_data.csv')
+
+    def _health_data_candidates():
+        candidates = []
+        env_path = os.getenv("HEALTH_DATA_PATH")
+        if env_path:
+            candidates.append(env_path)
+
+        # Monorepo layout: ../Data/health_data.csv from this file
+        candidates.append(
+            os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "Data", "health_data.csv")
+            )
+        )
+
+        # Docker layout: /app/Data/health_data.csv when mounted
+        candidates.append(
+            os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "Data", "health_data.csv")
+            )
+        )
+
+        # Absolute fallback
+        candidates.append("/Data/health_data.csv")
+
+        return candidates
     
     try:
+        data_path = None
+        for candidate in _health_data_candidates():
+            if candidate and os.path.exists(candidate):
+                data_path = candidate
+                break
+
+        if not data_path:
+            print("Health data not found. Set HEALTH_DATA_PATH or mount Data/ to /app/Data.")
+            return None
+
         # Load and prepare data
         df = predictor.prepare_data(data_path)
         if df is not None:

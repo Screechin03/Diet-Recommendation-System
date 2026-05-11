@@ -266,6 +266,140 @@ def home():
     return {"health_check": "OK - Pregnancy Nutrition API"}
 
 
+@app.get("/features")
+def features():
+    return {
+        "product": "Pregnancy Nutrition Guide",
+        "features": [
+            {
+                "title": "Pregnancy-safe recipe recommendations",
+                "description": "Diet-aware recipe suggestions based on pregnancy profile and ingredients.",
+            },
+            {
+                "title": "Dietary restriction filtering",
+                "description": "Supports vegan, vegetarian, dairy-free, gluten-free, and nut-free filters.",
+            },
+            {
+                "title": "Pregnancy risk analytics",
+                "description": "Risk assessment endpoint with optional refinement for explanations.",
+            },
+            {
+                "title": "Prescription report reader",
+                "description": "Upload a report and extract structured data plus diet guidance.",
+            },
+            {
+                "title": "Batch risk assessment",
+                "description": "Run risk assessment for multiple patients in a single request.",
+            },
+        ],
+    }
+
+
+@app.get("/docs")
+def docs():
+    return {
+        "endpoints": [
+            {
+                "method": "POST",
+                "path": "/predict/",
+                "purpose": "Pregnancy-safe recipe recommendations",
+                "request": {
+                    "pregnancy_info": {
+                        "pregnancy_month": 4,
+                        "age": 28,
+                        "pre_pregnancy_weight": 60,
+                        "current_weight": 64,
+                        "height": 165,
+                        "has_gestational_diabetes": False,
+                        "has_anemia": False,
+                        "has_morning_sickness": False,
+                        "has_heartburn": False,
+                        "has_constipation": False,
+                        "medications": [],
+                        "food_aversions": [],
+                        "food_cravings": [],
+                        "dietary_restrictions": ["Vegetarian"],
+                        "activity_level": "moderate",
+                    },
+                    "ingredients": ["spinach", "lentils"],
+                    "params": {"n_neighbors": 5, "return_distance": False},
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/predict_pregnancy_risk",
+                "purpose": "Pregnancy risk assessment",
+                "request": {
+                    "health_data": {
+                        "age": 29,
+                        "systolic_bp": 118,
+                        "diastolic_bp": 76,
+                        "blood_sugar": 6.8,
+                        "body_temp": 98.4,
+                        "bmi": 23.1,
+                        "heart_rate": 74,
+                        "previous_complications": False,
+                        "preexisting_diabetes": False,
+                        "gestational_diabetes": False,
+                        "mental_health_issues": False,
+                        "smoking_history": False,
+                        "alcohol_consumption": "none",
+                        "exercise_frequency": "moderate",
+                        "sleep_hours": 8,
+                        "stress_level": "low",
+                    }
+                },
+            },
+            {
+                "method": "GET",
+                "path": "/model_performance",
+                "purpose": "Model status and diagnostics",
+                "request": None,
+            },
+            {
+                "method": "POST",
+                "path": "/batch_risk_assessment",
+                "purpose": "Risk assessment for multiple patients",
+                "request": [
+                    {
+                        "age": 29,
+                        "systolic_bp": 118,
+                        "diastolic_bp": 76,
+                        "blood_sugar": 6.8,
+                        "body_temp": 98.4,
+                        "bmi": 23.1,
+                        "heart_rate": 74,
+                        "previous_complications": False,
+                        "preexisting_diabetes": False,
+                        "gestational_diabetes": False,
+                        "mental_health_issues": False,
+                        "smoking_history": False,
+                        "alcohol_consumption": "none",
+                        "exercise_frequency": "moderate",
+                        "sleep_hours": 8,
+                        "stress_level": "low",
+                    }
+                ],
+            },
+            {
+                "method": "POST",
+                "path": "/prescription_report",
+                "purpose": "Upload a report and generate diet guidance",
+                "request": {
+                    "content_type": "multipart/form-data",
+                    "fields": [
+                        "file (PDF/image)",
+                        "dietary_preferences",
+                        "allergies",
+                        "goals",
+                        "include_diet_plan",
+                    ],
+                },
+            },
+        ]
+    }
+
+
 @app.post("/predict/",response_model=PredictionOut)
 def get_pregnancy_recommendations(prediction_input:PredictionIn):
     try:
