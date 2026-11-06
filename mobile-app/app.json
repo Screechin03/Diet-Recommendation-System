@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "MamaCare",
+    "slug": "mamacare",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mamacare.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFE4EC",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.mamacare.app",
+      "backgroundColor": "#FFF7F9"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow MamaCare to pick a photo of your prescription or lab report.",
+          "cameraPermission": "Allow MamaCare to take a photo of your prescription or lab report.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-font"
+    ],
+    "scheme": "mamacare",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
