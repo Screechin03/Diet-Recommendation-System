@@ -1,112 +1,114 @@
-import numpy as np
+"""Content-based recipe recommender: ingredient pre-filter + KNN (cosine) over 9 nutrition values."""
+
+import html
 import re
-from sklearn.preprocessing import StandardScaler
+from typing import Dict, List, Optional, Sequence
+
+import numpy as np
+import pandas as pd
 from sklearn.neighbors import NearestNeighbors
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import StandardScaler
+
+# Order must match calculate_pregnancy_nutrition() in main.py.
+NUTRITION_COLUMNS = [
+    "Calories",
+    "FatContent",
+    "SaturatedFatContent",
+    "CholesterolContent",
+    "SodiumContent",
+    "CarbohydrateContent",
+    "FiberContent",
+    "SugarContent",
+    "ProteinContent",
+]
+
+SEARCH_COLUMN = "_search"  # lower-cased "Name + ingredients", precomputed once at dataset load
 
 
-def scaling(dataframe):
-    scaler=StandardScaler()
-    prep_data=scaler.fit_transform(dataframe.iloc[:,6:15].to_numpy())
-    return prep_data,scaler
+def build_search_text(df: pd.DataFrame) -> pd.Series:
+    return (df["Name"].fillna("").astype(str) + " " + df["RecipeIngredientParts"].fillna("").astype(str)).str.lower()
 
-def nn_predictor(prep_data):
-    neigh = NearestNeighbors(metric='cosine',algorithm='brute')
-    neigh.fit(prep_data)
-    return neigh
 
-def build_pipeline(neigh,scaler,params):
-    transformer = FunctionTransformer(neigh.kneighbors,kw_args=params)
-    pipeline=Pipeline([('std_scaler',scaler),('NN',transformer)])
-    return pipeline
+def _search_text(df: pd.DataFrame) -> pd.Series:
+    return df[SEARCH_COLUMN] if SEARCH_COLUMN in df.columns else build_search_text(df)
 
-def extract_data(dataframe,ingredients):
-    extracted_data=dataframe.copy()
-    extracted_data=extract_ingredient_filtered_data(extracted_data,ingredients)
-    return extracted_data
-    
-def extract_ingredient_filtered_data(dataframe, ingredients):
-    extracted_data = dataframe.copy()
-    if len(ingredients) == 0:
-        return extracted_data
-    
-    # Convert all ingredients to lowercase for consistent matching
-    ingredients = [ing.lower().strip() for ing in ingredients if ing.strip()]
-    
-    if not ingredients:
-        return extracted_data
-    
-    # Use flexible matching - look for recipes that contain ANY of the key ingredients
-    # This improves matching rate and speed
-    try:
-        # Create pattern with word boundaries for better accuracy
-        key_ingredients = ingredients[:3]  # Use only first 3 ingredients to avoid over-filtering
-        regex_pattern = '|'.join([f'(?i)\\b{re.escape(ing)}\\b' for ing in key_ingredients])
-        
-        # Filter recipes that match any key ingredient
-        mask = extracted_data['RecipeIngredientParts'].str.contains(
-            regex_pattern, case=False, na=False, regex=True
-        )
-        
-        filtered_data = extracted_data[mask]
-        
-        # If we get too few results, fall back to broader matching
-        if len(filtered_data) < 10:
-            # Broader search with partial word matching
-            broader_pattern = '|'.join([f'(?i){re.escape(ing)}' for ing in key_ingredients])
-            mask = extracted_data['RecipeIngredientParts'].str.contains(
-                broader_pattern, case=False, na=False, regex=True
-            )
-            filtered_data = extracted_data[mask]
-            
-            # If still too few results, return larger subset
-            if len(filtered_data) < 5:
-                return extracted_data.sample(min(50, len(extracted_data)))
-        
-        return filtered_data
-        
-    except Exception as e:
-        # Fallback to simple string matching if regex fails
-        filtered_data = extracted_data.copy()
-        for ing in key_ingredients:
-            mask = filtered_data['RecipeIngredientParts'].str.contains(
-                ing, case=False, na=False
-            )
-            temp_filtered = filtered_data[mask]
-            if len(temp_filtered) > 5:  # Only apply filter if we still have enough recipes
-                filtered_data = temp_filtered
-        
-        return filtered_data if len(filtered_data) > 0 else extracted_data.sample(min(20, len(extracted_data)))
 
-def apply_pipeline(pipeline,_input,extracted_data):
-    _input=np.array(_input).reshape(1,-1)
-    return extracted_data.iloc[pipeline.transform(_input)[0]]
+def ingredient_pattern(term: str) -> str:
+    """Whole-word match that also accepts simple plurals (egg/eggs, tomato/tomatoes)."""
+    return r"\b" + re.escape(term) + r"(?:e?s)?\b"
 
-def recommend(dataframe,_input,ingredients=[],params={'n_neighbors':5,'return_distance':False}):
-        extracted_data=extract_data(dataframe,ingredients)
-        if extracted_data.shape[0]>=params['n_neighbors']:
-            prep_data,scaler=scaling(extracted_data)
-            neigh=nn_predictor(prep_data)
-            pipeline=build_pipeline(neigh,scaler,params)
-            return apply_pipeline(pipeline,_input,extracted_data)
-        else:
-            return None
 
-def extract_quoted_strings(s):
-    # Find all the strings inside double quotes
-    strings = re.findall(r'"([^"]*)"', s)
-    # Join the strings with 'and'
-    return strings
+def extract_ingredient_filtered_data(dataframe: pd.DataFrame, ingredients: Sequence[str], min_results: int = 5) -> pd.DataFrame:
+    """Keep recipes that contain the requested ingredients, preferring recipes that contain MORE of them.
 
-def output_recommended_recipes(dataframe):
-    if dataframe is not None:
-        output=dataframe.copy()
-        output=output.to_dict("records")
-        for recipe in output:
-            recipe['RecipeIngredientParts']=extract_quoted_strings(recipe['RecipeIngredientParts'])
-            recipe['RecipeInstructions']=extract_quoted_strings(recipe['RecipeInstructions'])
-    else:
-        output=None
+    Falls back step by step (all ingredients -> fewer -> any -> partial word) and finally to the whole
+    set, so results are deterministic (the old code returned a random sample when nothing matched).
+    """
+    terms: List[str] = []
+    for ing in ingredients:
+        t = str(ing).strip().lower()
+        if t and t not in terms:
+            terms.append(t)
+    terms = terms[:6]
+    if not terms or dataframe.empty:
+        return dataframe
+
+    text = _search_text(dataframe)
+    counts = np.zeros(len(dataframe), dtype=int)
+    for term in terms:
+        counts += text.str.contains(ingredient_pattern(term), regex=True, na=False).to_numpy()
+
+    for k in range(len(terms), 0, -1):
+        mask = counts >= k
+        if mask.sum() >= min_results:
+            return dataframe[mask]
+    if (counts > 0).any():
+        return dataframe[counts > 0]  # fewer than requested, but all relevant
+
+    partial = np.zeros(len(dataframe), dtype=bool)
+    for term in terms:
+        partial |= text.str.contains(re.escape(term), regex=True, na=False).to_numpy()
+    if partial.any():
+        return dataframe[partial]
+
+    return dataframe  # nothing matches: rank the whole set by nutrition only
+
+
+def recommend(
+    dataframe: pd.DataFrame,
+    _input: Sequence[float],
+    ingredients: Sequence[str] = (),
+    params: Optional[Dict] = None,
+) -> Optional[pd.DataFrame]:
+    params = params or {}
+    n_neighbors = max(1, int(params.get("n_neighbors", 5)))
+
+    data = extract_ingredient_filtered_data(dataframe, ingredients, min_results=n_neighbors)
+    if data.empty:
+        return None
+    n_neighbors = min(n_neighbors, len(data))
+
+    features = data[NUTRITION_COLUMNS].to_numpy(dtype=float)
+    scaler = StandardScaler().fit(features)
+    neigh = NearestNeighbors(metric="cosine", algorithm="brute").fit(scaler.transform(features))
+    target = scaler.transform(np.asarray(_input, dtype=float).reshape(1, -1))
+    # Always request indices only: the old pipeline crashed (500) when return_distance=true,
+    # because it used the distance array as row indices.
+    indices = neigh.kneighbors(target, n_neighbors=n_neighbors, return_distance=False)[0]
+    return data.iloc[indices]
+
+
+def extract_quoted_strings(s) -> List[str]:
+    """Parse the dataset's R-style c("a", "b") lists."""
+    return [html.unescape(x) for x in re.findall(r'"([^"]*)"', str(s or ""))]
+
+
+def output_recommended_recipes(dataframe: Optional[pd.DataFrame]) -> Optional[List[Dict]]:
+    if dataframe is None:
+        return None
+    output = dataframe.drop(columns=[SEARCH_COLUMN], errors="ignore").to_dict("records")
+    for recipe in output:
+        recipe["Name"] = html.unescape(str(recipe.get("Name", "")))
+        recipe["RecipeIngredientParts"] = extract_quoted_strings(recipe.get("RecipeIngredientParts"))
+        recipe["RecipeInstructions"] = extract_quoted_strings(recipe.get("RecipeInstructions"))
     return output
-
