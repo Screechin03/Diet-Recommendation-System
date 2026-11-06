@@ -40,3 +40,6 @@ test.ipynb
 
 # Large dataset (keep locally; don't publish)
 Data/dataset.csv
+# Local clone of the OCR training repo (github.com/TakeASwing-420/h_recog).
+# The app uses the exported model in FastAPI_Backend/ocr/; see FastAPI_Backend/ocr/README.md.
+h_recog/

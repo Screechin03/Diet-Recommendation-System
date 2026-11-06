@@ -61,3 +61,36 @@ export async function proxyJson(
 export function jsonError(message: string, status = 500) {
   return NextResponse.json({ error: message }, { status });
 }
+
+/** Forwards a multipart upload to the FastAPI backend with a timeout and readable errors. */
+export async function forwardMultipart(req: Request, path: string, timeoutMs: number): Promise<Response> {
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return jsonError("Expected a multipart/form-data upload with a 'file' field.", 400);
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    // Do NOT set content-type manually; fetch adds the multipart boundary.
+    const res = await fetch(`${apiBaseUrl()}${path}`, {
+      method: "POST",
+      body: formData,
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    const text = await res.text();
+    return new Response(text, {
+      status: res.status,
+      headers: { "content-type": res.headers.get("content-type") ?? "application/json" },
+    });
+  } catch (e) {
+    if (controller.signal.aborted) return jsonError("The reading service took too long to respond.", 504);
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return jsonError(`Could not reach the reading service: ${msg}`, 502);
+  } finally {
+    clearTimeout(timer);
+  }
+}

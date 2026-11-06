@@ -13,10 +13,10 @@ import type {
   PickedFile,
   PredictionIn,
   PredictionOut,
-  PrescriptionReport,
   RefinedSummary,
   RiskPredictionOut,
 } from "./types";
+import { friendlyError, type HandwritingApiResponse, type PrescriptionApiResponse } from "./report";
 
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -41,9 +41,9 @@ function errorMessageFrom(text: string, status: number): string {
   return text.trim().slice(0, 300) || `Request failed (${status})`;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetch(`${apiBaseUrl()}${path}`, { ...init, signal: controller.signal });
@@ -55,7 +55,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   const text = await res.text();
-  if (!res.ok) throw new Error(errorMessageFrom(text, res.status));
+  if (!res.ok) {
+    throw new Error(path.includes("prescription") || path.includes("ocr") ? friendlyError(res.status, text) : errorMessageFrom(text, res.status));
+  }
   try {
     return JSON.parse(text) as T;
   } catch {
@@ -91,20 +93,33 @@ export function predictRisk(health: HealthAnalyticsInput): Promise<RiskPredictio
   return postJson<RiskPredictionOut>("/api/predict_pregnancy_risk", { health_data: health });
 }
 
-/** Next.js /api/prescription_report → FastAPI POST /prescription_report (multipart, Gemini OCR). */
-export function prescriptionReport(
-  file: PickedFile,
-  opts: { dietaryPreferences: string; allergies: string; goals: string; includeDietPlan: boolean },
-): Promise<PrescriptionReport> {
+function uploadForm(file: PickedFile): FormData {
   const form = new FormData();
   // React Native's FormData accepts {uri,name,type} file descriptors.
   form.append("file", { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob);
+  return form;
+}
+
+/**
+ * Next.js /api/prescription_report → FastAPI POST /prescription_report:
+ * block-letter handwriting scan + Gemini extraction + diet plan. Can take up to ~2 minutes.
+ */
+export function prescriptionReport(
+  file: PickedFile,
+  opts: { dietaryPreferences: string; allergies: string; goals: string; includeDietPlan: boolean },
+): Promise<PrescriptionApiResponse> {
+  const form = uploadForm(file);
   form.append("dietary_preferences", opts.dietaryPreferences);
   form.append("allergies", opts.allergies);
   form.append("goals", opts.goals);
   form.append("include_diet_plan", String(opts.includeDietPlan));
   // Do not set content-type: fetch adds the multipart boundary itself.
-  return request<PrescriptionReport>("/api/prescription_report", { method: "POST", body: form });
+  return request<PrescriptionApiResponse>("/api/prescription_report", { method: "POST", body: form }, 120_000);
+}
+
+/** Next.js /api/ocr_handwriting → FastAPI POST /ocr/handwriting (h_recog block-letter model, no AI key needed). */
+export function scanHandwriting(file: PickedFile): Promise<HandwritingApiResponse> {
+  return request<HandwritingApiResponse>("/api/ocr_handwriting", { method: "POST", body: uploadForm(file) }, 45_000);
 }
 
 /** Next.js /api/recipe_image → resolves a matching photo URL (TheMealDB/Wikimedia/Gemini). */

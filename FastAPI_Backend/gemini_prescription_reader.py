@@ -1,18 +1,10 @@
 import base64
 import json
 import os
-from functools import lru_cache
 from typing import Any, Dict, Optional
 
 from gemini_client import gemini_enabled, generate, strip_code_fences
-
-
-IMG_SIZE = 32
-CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-MIN_CONTOUR_W = 5
-MIN_CONTOUR_H = 15
-MAX_CONTOUR_W = 150
-MAX_CONTOUR_H = 120
+from ocr.handwriting import transcript_for_llm
 
 
 def _get_env(name: str, default: Optional[str] = None) -> Optional[str]:
@@ -100,235 +92,12 @@ def _parse_json_object_best_effort(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _find_ocr_model_path() -> Optional[str]:
-    env_path = _get_env("OCR_MODEL_PATH")
-    candidates = [
-        env_path,
-        os.path.join(os.path.dirname(__file__), "..", "h_recog", "ocr_model.h5"),
-        os.path.join(os.getcwd(), "h_recog", "ocr_model.h5"),
-        "/app/h_recog/ocr_model.h5",
-    ]
-
-    for path in candidates:
-        if path and os.path.exists(path):
-            return os.path.abspath(path)
-    return None
-
-
-@lru_cache(maxsize=1)
-def _get_ocr_infer_model(model_path: str):
-    try:
-        import h5py
-        import tensorflow as tf
-    except Exception:
-        return None
-
-    try:
-        keras_model = tf.keras.models.load_model(model_path)
-    except TypeError as exc:
-        if "quantization_config" not in str(exc):
-            return None
-
-        with h5py.File(model_path, "r") as h5_file:
-            model_config = h5_file.attrs.get("model_config")
-            if model_config is None:
-                return None
-            if isinstance(model_config, (bytes, bytearray)):
-                model_config = model_config.decode("utf-8")
-
-        def strip_key(obj, key_to_remove: str):
-            if isinstance(obj, dict):
-                return {
-                    k: strip_key(v, key_to_remove)
-                    for k, v in obj.items()
-                    if k != key_to_remove
-                }
-            if isinstance(obj, list):
-                return [strip_key(v, key_to_remove) for v in obj]
-            return obj
-
-        cleaned_config = strip_key(json.loads(model_config), "quantization_config")
-        keras_model = tf.keras.models.Model.from_config(cleaned_config["config"])
-        keras_model.load_weights(model_path)
-    except Exception:
-        return None
-
-    def infer(roi_input):
-        return keras_model.predict(roi_input, verbose=0)
-
-    return infer
-
-
-def _preprocess_roi(roi, cv2, np):
-    thresh = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-    t_h, t_w = thresh.shape
-
-    if t_w > t_h:
-        new_w = IMG_SIZE
-        new_h = max(1, int(round((t_h / float(t_w)) * IMG_SIZE)))
-    else:
-        new_h = IMG_SIZE
-        new_w = max(1, int(round((t_w / float(t_h)) * IMG_SIZE)))
-
-    interp = cv2.INTER_AREA if (new_w < t_w or new_h < t_h) else cv2.INTER_LINEAR
-    resized = cv2.resize(thresh, (new_w, new_h), interpolation=interp)
-
-    d_x = max(0, IMG_SIZE - new_w)
-    d_y = max(0, IMG_SIZE - new_h)
-    left = d_x // 2
-    right = d_x - left
-    top = d_y // 2
-    bottom = d_y - top
-
-    padded = cv2.copyMakeBorder(
-        resized,
-        top=top,
-        bottom=bottom,
-        left=left,
-        right=right,
-        borderType=cv2.BORDER_CONSTANT,
-        value=(0, 0, 0),
-    )
-    padded = cv2.resize(padded, (IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
-    padded = padded.astype("float32") / 255.0
-    return np.expand_dims(padded, axis=-1)
-
-
-def _sort_contours(contours, cv2, method: str = "left-to-right"):
-    reverse = method in ("right-to-left", "bottom-to-top")
-    axis = 1 if method in ("top-to-bottom", "bottom-to-top") else 0
-    boxes = [cv2.boundingRect(c) for c in contours]
-    contours, boxes = zip(
-        *sorted(zip(contours, boxes), key=lambda b: b[1][axis], reverse=reverse)
-    )
-    return contours, boxes
-
-
-def _decode_pdf_first_page_to_bgr(file_bytes: bytes):
-    # Optional dependency: if PyMuPDF is unavailable, OCR assistance falls back silently.
-    try:
-        import fitz  # type: ignore
-        import numpy as np
-    except Exception:
-        return None
-
-    try:
-        doc = fitz.open(stream=file_bytes, filetype="pdf")
-        if len(doc) == 0:
-            return None
-        page = doc.load_page(0)
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
-        rgb = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
-        if pix.n == 4:
-            rgb = rgb[:, :, :3]
-        return rgb[:, :, ::-1]  # RGB -> BGR
-    except Exception:
-        return None
-
-
-def _run_ocr_assist(file_bytes: bytes, mime_type: str) -> Optional[Dict[str, Any]]:
-    model_path = _find_ocr_model_path()
-    if not model_path:
-        return None
-
-    infer = _get_ocr_infer_model(model_path)
-    if infer is None:
-        return None
-
-    try:
-        import cv2
-        import numpy as np
-    except Exception:
-        return None
-
-    image_bgr = None
-    if mime_type.startswith("image/"):
-        decoded = cv2.imdecode(np.frombuffer(file_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
-        image_bgr = decoded
-    elif mime_type == "application/pdf":
-        image_bgr = _decode_pdf_first_page_to_bgr(file_bytes)
-
-    if image_bgr is None:
-        return None
-
-    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    edged = cv2.Canny(blurred, 30, 150)
-    contours, _ = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    if not contours:
-        return None
-
-    _, boxes_sorted = _sort_contours(contours, cv2, method="left-to-right")
-
-    boxes = []
-    roi_batch = []
-    img_h, img_w = gray.shape[:2]
-    for (x, y, w, h) in boxes_sorted:
-        if (
-            w < MIN_CONTOUR_W
-            or h < MIN_CONTOUR_H
-            or w > MAX_CONTOUR_W
-            or h > MAX_CONTOUR_H
-        ):
-            continue
-
-        x1 = max(0, x)
-        y1 = max(0, y)
-        x2 = min(img_w, x + w)
-        y2 = min(img_h, y + h)
-        roi = gray[y1:y2, x1:x2]
-        if roi.size == 0:
-            continue
-
-        boxes.append((x, y, w, h))
-        roi_batch.append(_preprocess_roi(roi, cv2, np))
-
-    if not roi_batch:
-        return None
-
-    predictions = infer(np.array(roi_batch, dtype="float32"))
-
-    annotated = image_bgr.copy()
-    chars: list[str] = []
-    confidences: list[float] = []
-    for pred, (x, y, w, h) in zip(predictions, boxes):
-        idx = int(np.argmax(pred))
-        label = CHARS[idx] if idx < len(CHARS) else "?"
-        confidence = float(pred[idx]) if idx < len(pred) else 0.0
-
-        chars.append(label)
-        confidences.append(confidence)
-
-        cv2.rectangle(annotated, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(
-            annotated,
-            f"{label} ({confidence * 100:.1f}%)",
-            (x, max(0, y - 5)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (0, 255, 0),
-            1,
-        )
-
-    ok, encoded = cv2.imencode(".png", annotated)
-    if not ok:
-        return None
-
-    avg_conf = float(sum(confidences) / len(confidences)) if confidences else 0.0
-    return {
-        "ocr_text": "".join(chars),
-        "avg_confidence": avg_conf,
-        "annotated_image_png": encoded.tobytes(),
-        "source": "ocr_model",
-    }
-
-
 def extract_prescription_structured(
     *,
     file_bytes: bytes,
     mime_type: str,
     filename: str,
+    ocr_result: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Extract a structured report from a prescription (PDF/photo).
 
@@ -342,22 +111,16 @@ def extract_prescription_structured(
     if not gemini_enabled():
         return None
 
-    try:
-        # Optional local handwriting OCR (needs h_recog + tensorflow + opencv); never fatal.
-        ocr_assist = _run_ocr_assist(file_bytes=file_bytes, mime_type=mime_type)
-    except Exception:  # noqa: BLE001 - any OCR failure just means "no OCR assist"
-        ocr_assist = None
-
+    # Block-letter OCR (ocr/handwriting.py) is only passed on when it read the page CLEARLY;
+    # noisy guesses on cursive writing would mislead the model.
+    ocr_text = transcript_for_llm(ocr_result)
     ocr_assist_prompt = ""
-    if ocr_assist:
+    if ocr_text:
         ocr_assist_prompt = (
-            "\nOCR_ASSIST (from local handwriting OCR model):\n"
-            f"- source: {ocr_assist['source']}\n"
-            f"- transcript: {ocr_assist['ocr_text'][:1200]}\n"
-            f"- avg_confidence: {ocr_assist['avg_confidence']:.4f}\n"
-            "Use this OCR transcript and the attached annotated OCR image as supporting context "
-            "when handwriting is unclear in the original document. Prioritize the source document "
-            "for final values and report any conflict in uncertainties.\n"
+            "\nOCR_ASSIST (local block-letter handwriting OCR, avg confidence "
+            f"{ocr_result.get('avg_confidence', 0):.2f}):\n{ocr_text[:1200]}\n"
+            "Use it only to disambiguate unclear characters. The attached document is the source of truth; "
+            "report any conflict in uncertainties.\n"
         )
 
     prompt = (
@@ -393,8 +156,6 @@ def extract_prescription_structured(
     )
 
     parts = [{"text": prompt}, _inline_data_part(file_bytes, mime_type)]
-    if ocr_assist:
-        parts.append(_inline_data_part(ocr_assist["annotated_image_png"], "image/png"))
 
     text = _call_gemini_parts(parts)
 

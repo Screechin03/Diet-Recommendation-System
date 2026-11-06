@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiBaseUrl, jsonError } from "../_proxy";
-import { generateContent, listGenerateContentModels } from "../_gemini";
+import { candidateText, generateContent, listGenerateContentModels } from "../_gemini";
 
 export const maxDuration = 60;
 
@@ -70,12 +70,8 @@ function canonicalizeRestriction(value: string): string {
 
 function getDietaryRestrictions(pregnancyInfo: unknown): string[] {
   if (!pregnancyInfo || typeof pregnancyInfo !== "object") return [];
-  const restrictions = (pregnancyInfo as any).dietary_restrictions;
+  const restrictions = (pregnancyInfo as { dietary_restrictions?: unknown }).dietary_restrictions;
   return normalizeRestrictions(restrictions);
-}
-
-function isVegan(restrictions: string[]): boolean {
-  return restrictions.some((r) => r === "vegan");
 }
 
 const MEAT_AND_SEAFOOD_TERMS = [
@@ -485,14 +481,9 @@ async function callGeminiNormalizeIngredients(ingredients: string[], restriction
     const result = await generateContent(key, model, body);
     if (!result.ok) continue;
 
-    const data: any = result.json;
-
-    const candidateText: string | undefined =
-      data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("\n") ??
-      data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!candidateText) continue;
-    const cleaned = stripCodeFences(String(candidateText));
+    const text = candidateText(result.json);
+    if (!text) continue;
+    const cleaned = stripCodeFences(text);
 
     try {
       const parsed = JSON.parse(cleaned) as {
@@ -567,7 +558,7 @@ export async function POST(req: Request) {
   try {
     const incoming = (await req.json()) as PredictionIn;
     const ingredientsOriginal = normalizeIngredientsInput(incoming?.ingredients);
-    const restrictions = getDietaryRestrictions((incoming as any)?.pregnancy_info);
+    const restrictions = getDietaryRestrictions(incoming?.pregnancy_info);
 
     const forbidden = forbiddenTermsForRestrictions(restrictions);
     const inputConflictsRestriction =
@@ -576,7 +567,7 @@ export async function POST(req: Request) {
     const pregnancyInfoForBackend =
       incoming?.pregnancy_info && typeof incoming.pregnancy_info === "object"
         ? {
-            ...(incoming.pregnancy_info as any),
+            ...(incoming.pregnancy_info as Record<string, unknown>),
             dietary_restrictions: toBackendDietaryRestrictions(restrictions),
           }
         : incoming?.pregnancy_info;

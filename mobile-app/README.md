@@ -29,10 +29,11 @@ so the Gemini key stays on the server and the ingredient-correction and diet-fil
 | ↳ Save / history | Supabase `saved_recipes`, `recipe_history` | — | Supabase (RLS: own rows only) |
 | **Health** tab (web *Health Analytics*) | `POST /api/predict_pregnancy_risk` | plain proxy | `POST /predict_pregnancy_risk` → RandomForest on `health_data.csv` + rule-based recommendations |
 | ↳ AI summary toggle | `POST /api/refine` `{kind:"risk"}` | Gemini explanation | — |
-| **Reports** tab (web *Prescription Reader*) | `POST /api/prescription_report` (multipart) | plain proxy | `POST /prescription_report` → Gemini vision extraction (+ optional `h_recog` OCR) → Gemini diet plan |
+| **Reports** tab → *Full report* (web *Prescription Reader*) | `POST /api/prescription_report` (multipart) | proxy, 110 s timeout | `POST /prescription_report` → block-letter handwriting scan + Gemini vision extraction → Gemini diet plan. If Gemini is unavailable, the scan is still returned |
+| **Reports** tab → *Handwriting scan* | `POST /api/ocr_handwriting` (multipart) | proxy, 30 s timeout | `POST /ocr/handwriting` → h_recog character model (ONNX). No AI key needed; see `FastAPI_Backend/ocr/README.md` |
 | **Account** tab, Login, Sign up, Saved, History | Supabase Auth + tables | — | same accounts as the website |
 
-Left out of the app on purpose: the web `/features` and `/docs` pages (marketing/API docs), `/todos` (Supabase demo),
+Left out of the app on purpose: the web `/features` and `/docs` pages (marketing/API docs),
 `/model_performance` and `/batch_risk_assessment` (developer/clinic tools).
 
 ## Code layout
@@ -44,14 +45,15 @@ src/app/                 screens (Expo Router: each file is a route)
   (tabs)/index.tsx       Home
   (tabs)/planner.tsx     Diet Plan (profile is remembered on device)
   (tabs)/health.tsx      Health risk check
-  (tabs)/report.tsx      Prescription reader (camera / photos / PDF)
+  (tabs)/report.tsx      Prescription reader + handwriting scan (camera / photos / PDF)
   (tabs)/account.tsx     Account
   login.tsx signup.tsx saved.tsx history.tsx
 src/lib/api.ts           every backend call in one place
 src/lib/supabase.ts      Supabase client (session persisted on device)
 src/lib/userData.ts      saved recipes + history queries
 src/lib/types.ts         request/response types (shared with the web app)
-src/components/          UI kit, RecipeCard, AI summary, report renderer
+src/lib/report.ts        report/scan response parsing (shared with nextjs-frontend/src/lib/report.ts)
+src/components/          UI kit, RecipeCard, AI summary, ReportViews (report, diet plan, scan cards)
 ```
 
 ## Run it on your phone (development)

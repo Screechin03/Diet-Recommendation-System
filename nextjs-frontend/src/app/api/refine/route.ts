@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateContent, listGenerateContentModels } from "../_gemini";
+import { candidateText, generateContent, listGenerateContentModels } from "../_gemini";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +14,6 @@ function geminiApiKey(): string {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("Missing GEMINI_API_KEY");
   return key;
-}
-
-function geminiModel(): string {
-  return process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
 }
 
 function geminiCandidateModels(): string[] {
@@ -90,18 +86,15 @@ async function callGemini(prompt: string) {
       continue;
     }
 
-    const data = result.json;
-    const candidateText: string | undefined =
-      data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("\n") ??
-      data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = candidateText(result.json);
 
-    if (!candidateText) {
+    if (!text) {
       lastStatus = 502;
       lastError = "Gemini returned no text";
       continue;
     }
 
-    const cleaned = candidateText
+    const cleaned = text
       .trim()
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/i, "")

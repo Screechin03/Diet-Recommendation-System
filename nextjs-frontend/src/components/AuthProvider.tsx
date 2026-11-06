@@ -13,11 +13,18 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// Inlined at build time. Without these, accounts are simply disabled (no session to wait for).
+const SUPABASE_CONFIGURED = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+);
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(SUPABASE_CONFIGURED);
 
   useEffect(() => {
+    if (!SUPABASE_CONFIGURED) return;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let subscription: { unsubscribe: () => void } | null = null;
 
@@ -48,8 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       subscription = authSubscription;
     } catch {
-      setSession(null);
-      setLoading(false);
+      // Client creation failed despite env vars: stop waiting on the next tick.
+      timeoutId = setTimeout(() => setLoading(false), 0);
     }
 
     return () => {
@@ -64,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       loading,
       signOut: async () => {
+        if (!SUPABASE_CONFIGURED) return;
         const supabase = getSupabaseBrowserClient();
         const { error } = await supabase.auth.signOut();
         if (error) throw error;

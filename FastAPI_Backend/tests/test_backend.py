@@ -199,3 +199,49 @@ def test_prescription_upload_type_handling(client):
     # Mobile uploads often say application/octet-stream; type must be inferred from the name.
     res = client.post("/prescription_report", files={"file": ("rx.jpg", b"\xff\xd8\xff fake", "application/octet-stream")})
     assert res.status_code == 200 and res.json()["file"]["mime_type"] == "image/jpeg"
+
+
+# --- Handwriting OCR (h_recog model) -------------------------------------------------------
+
+IMAGES = os.path.join(BACKEND, "..", "Data", "images")
+
+
+def _img(name):
+    with open(os.path.join(IMAGES, name), "rb") as f:
+        return f.read()
+
+
+def test_ocr_reads_lines_in_order():
+    from ocr.handwriting import read_handwriting, transcript_for_llm
+
+    r = read_handwriting(_img("hello_world.png"), "image/png")
+    # The original script interleaved the two lines ("HWEOLRLLOD").
+    assert r["text"] == "HELLO\nWORLD"
+    assert r["quality"] == "clear"
+    assert transcript_for_llm(r) == "HELLO\nWORLD"
+    assert r["annotated_image"].startswith("data:image/jpeg;base64,")
+
+
+def test_ocr_refuses_to_invent_text_for_cursive_prescriptions():
+    from ocr.handwriting import read_handwriting, transcript_for_llm
+
+    r = read_handwriting(_img("5.jpg"), "image/jpeg")
+    assert r["quality"] in ("unreadable", "no_text")
+    assert r["text"] == "" and transcript_for_llm(r) is None
+
+
+def test_ocr_endpoint(client):
+    ok = client.post("/ocr/handwriting", files={"file": ("note.png", _img("hello_world.png"), "image/png")})
+    body = ok.json()
+    assert ok.status_code == 200 and body["success"] and body["ocr"]["text"] == "HELLO\nWORLD"
+
+    bad = client.post("/ocr/handwriting", files={"file": ("broken.jpg", b"\xff\xd8 not really", "image/jpeg")})
+    assert bad.status_code == 200 and not bad.json()["success"] and "decode" in bad.json()["error"]
+
+
+def test_prescription_report_includes_scan_without_gemini(client, monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    res = client.post("/prescription_report", files={"file": ("rx.png", _img("hello_world.png"), "image/png")})
+    body = res.json()
+    assert res.status_code == 200 and body["success"] is False
+    assert body["ocr"]["quality"] == "clear" and "isn't available" in body["error"]
