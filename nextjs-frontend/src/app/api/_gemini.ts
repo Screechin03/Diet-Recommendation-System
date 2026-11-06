@@ -1,3 +1,28 @@
+export type GeminiPart = {
+  text?: string;
+  inlineData?: { mimeType?: string; data?: string };
+  inline_data?: { mime_type?: string; data?: string };
+};
+
+export type GeminiResponse = {
+  candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+};
+
+/** Concatenated text of the first candidate, or undefined. */
+export function candidateText(json: GeminiResponse | null | undefined): string | undefined {
+  const parts = json?.candidates?.[0]?.content?.parts ?? [];
+  const text = parts
+    .map((p) => p?.text)
+    .filter((t): t is string => Boolean(t))
+    .join("\n");
+  return text || undefined;
+}
+
+/** Auth header for the Gemini REST API. The key must never go in the URL (proxies and logs record URLs). */
+export function geminiHeaders(apiKey: string): Record<string, string> {
+  return { "content-type": "application/json", "x-goog-api-key": apiKey };
+}
+
 type ModelListResponse = {
   models?: Array<{
     name?: string;
@@ -31,6 +56,7 @@ function looksLikeTextModel(id: string): boolean {
 
 function sortPreferred(ids: string[]): string[] {
   const preferences = [
+    "gemini-flash-latest",
     "gemini-2.5-flash",
     "gemini-2.5-pro",
     "gemini-2.0-flash",
@@ -58,8 +84,7 @@ const CACHE_TTL_MS = 1000 * 60 * 10;
 export async function listGenerateContentModels(apiKey: string): Promise<string[]> {
   if (cached && Date.now() < cached.expiresAt) return cached.generateContentModels;
 
-  const url = `${geminiApiBase()}/models?key=${encodeURIComponent(apiKey)}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(`${geminiApiBase()}/models`, { headers: geminiHeaders(apiKey), cache: "no-store" });
   if (!res.ok) {
     cached = { expiresAt: Date.now() + 30_000, generateContentModels: [] };
     return [];
@@ -80,14 +105,12 @@ export async function generateContent(
   apiKey: string,
   modelId: string,
   body: unknown,
-): Promise<{ ok: true; json: any } | { ok: false; status: number; text: string }>
+): Promise<{ ok: true; json: GeminiResponse } | { ok: false; status: number; text: string }>
 {
-  const url = `${geminiApiBase()}/models/${encodeURIComponent(modelId)}:generateContent?key=${encodeURIComponent(
-    apiKey,
-  )}`;
+  const url = `${geminiApiBase()}/models/${encodeURIComponent(modelId)}:generateContent`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: geminiHeaders(apiKey),
     body: JSON.stringify(body),
     cache: "no-store",
   });
@@ -96,7 +119,7 @@ export async function generateContent(
   if (!res.ok) return { ok: false, status: res.status, text };
 
   try {
-    return { ok: true, json: JSON.parse(text) };
+    return { ok: true, json: JSON.parse(text) as GeminiResponse };
   } catch {
     return { ok: false, status: 502, text };
   }

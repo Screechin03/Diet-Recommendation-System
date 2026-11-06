@@ -33,7 +33,7 @@ so the Gemini key stays on the server and the ingredient-correction and diet-fil
 | **Reports** tab → *Handwriting scan* | `POST /api/ocr_handwriting` (multipart) | proxy, 30 s timeout | `POST /ocr/handwriting` → h_recog character model (ONNX). No AI key needed; see `FastAPI_Backend/ocr/README.md` |
 | **Account** tab, Login, Sign up, Saved, History | Supabase Auth + tables | — | same accounts as the website |
 
-Left out of the app on purpose: the web `/features` and `/docs` pages (marketing/API docs), `/todos` (Supabase demo),
+Left out of the app on purpose: the web `/features` and `/docs` pages (marketing/API docs),
 `/model_performance` and `/batch_risk_assessment` (developer/clinic tools).
 
 ## Code layout

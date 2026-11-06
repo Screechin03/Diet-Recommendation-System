@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { geminiHeaders } from "../_gemini";
 
 export const maxDuration = 60;
 
@@ -230,9 +231,7 @@ async function callGeminiImageModel(
   ingredientsRaw: string,
   debugAttempts?: GeminiAttemptDebug[],
 ): Promise<string | null> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    model,
-  )}:generateContent?key=${encodeURIComponent(key)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
   const prompt = [
     "Generate a photorealistic, high-quality food photograph.",
@@ -279,9 +278,7 @@ async function callGeminiImageModel(
     lastModalities = attempt.responseModalities;
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
+      headers: geminiHeaders(key),
       body: JSON.stringify(attempt.body),
       cache: "no-store",
     });
