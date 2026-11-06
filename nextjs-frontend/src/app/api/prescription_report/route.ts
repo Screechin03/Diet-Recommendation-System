@@ -1,21 +1,8 @@
-import { apiBaseUrl } from "../_proxy";
+import { forwardMultipart } from "../_proxy";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
+/** Proxies to FastAPI POST /prescription_report (block-letter scan + Gemini extraction + diet plan). */
 export async function POST(req: Request) {
-  const formData = await req.formData();
-
-  const url = `${apiBaseUrl()}/prescription_report`;
-  const res = await fetch(url, {
-    method: "POST",
-    // Do NOT set content-type manually; fetch will set multipart boundary.
-    body: formData,
-    cache: "no-store",
-  });
-
-  const text = await res.text();
-  return new Response(text, {
-    status: res.status,
-    headers: { "content-type": res.headers.get("content-type") ?? "application/json" },
-  });
+  return forwardMultipart(req, "/prescription_report", 110_000);
 }

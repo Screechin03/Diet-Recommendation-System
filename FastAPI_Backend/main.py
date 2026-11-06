@@ -5,7 +5,7 @@ import os
 import re
 import threading
 from functools import lru_cache
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -28,8 +28,10 @@ from gemini_prescription_reader import (
     extract_prescription_structured,
     generate_diet_plan_from_extraction,
 )
+from gemini_client import gemini_enabled
 from gemini_refiner import refine_recipe_tips, refine_risk_explanation
 from model import SEARCH_COLUMN, build_search_text, output_recommended_recipes, recommend
+from ocr import handwriting as handwriting_ocr
 from pregnancy_ml_predictor import get_pregnancy_predictor
 
 logger = logging.getLogger("pregnancy_api")
@@ -268,6 +270,14 @@ class PrescriptionReportOut(BaseModel):
     file: Dict[str, Any]
     extracted: Optional[Dict[str, Any]] = None
     diet_plan: Optional[Dict[str, Any]] = None
+    ocr: Optional[Dict[str, Any]] = None  # block-letter handwriting scan (works without Gemini)
+    error: Optional[str] = None
+
+
+class HandwritingOut(BaseModel):
+    success: bool
+    file: Dict[str, Any]
+    ocr: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
 
@@ -415,7 +425,12 @@ def health():
     ok = recipes > 0 and predictor is not None
     return JSONResponse(
         status_code=200 if ok else 503,
-        content={"ok": ok, "recipes_loaded": recipes, "risk_model_loaded": predictor is not None},
+        content={
+            "ok": ok,
+            "recipes_loaded": recipes,
+            "risk_model_loaded": predictor is not None,
+            "handwriting_ocr_loaded": handwriting_ocr.is_available(),
+        },
     )
 
 
@@ -450,6 +465,8 @@ def endpoints():
             {"method": "POST", "path": "/batch_risk_assessment", "purpose": "Risk assessment for up to 100 patients"},
             {"method": "POST", "path": "/prescription_report",
              "purpose": "Upload a PDF/image report (multipart: file, dietary_preferences, allergies, goals, include_diet_plan)"},
+            {"method": "POST", "path": "/ocr/handwriting",
+             "purpose": "Read block-letter handwriting from a photo/PDF (multipart: file); no Gemini needed"},
             {"method": "GET", "path": "/health", "purpose": "Readiness check"},
         ],
     }
@@ -586,6 +603,42 @@ def _resolve_mime_type(content_type: Optional[str], filename: str) -> str:
     return mime
 
 
+async def _read_upload(file: UploadFile) -> Tuple[bytes, str, Dict[str, Any]]:
+    max_bytes = int(os.getenv("PRESCRIPTION_MAX_BYTES", "10485760"))  # 10MB default
+    content = await file.read(max_bytes + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(content) > max_bytes:
+        raise HTTPException(status_code=413, detail=f"File too large (max {max_bytes // 1048576} MB)")
+    filename = file.filename or "upload"
+    mime_type = _resolve_mime_type(file.content_type, filename)
+    if not mime_type.startswith(_SUPPORTED_UPLOAD_TYPES):
+        raise HTTPException(status_code=415, detail=f"Unsupported file type {mime_type}. Upload a PDF or an image.")
+    return content, mime_type, {"filename": filename, "mime_type": mime_type, "size_bytes": len(content)}
+
+
+async def _run_ocr(content: bytes, mime_type: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """Returns (result, error). Never raises: the scan is an optional extra."""
+    try:
+        return await run_in_threadpool(handwriting_ocr.read_handwriting, content, mime_type), None
+    except handwriting_ocr.UnreadableImage as e:
+        return None, str(e)
+    except handwriting_ocr.OCRUnavailable as e:
+        logger.error("Handwriting OCR unavailable: %s", e)
+        return None, "Handwriting scanner is not available on this server."
+    except Exception:  # noqa: BLE001 - a scanner bug must not break the report
+        logger.exception("Handwriting OCR failed")
+        return None, "Handwriting scan failed for this file."
+
+
+@app.post("/ocr/handwriting", response_model=HandwritingOut)
+async def ocr_handwriting(file: UploadFile = File(...)):
+    """Read block-letter handwriting (A-Z, 0-9) with the local h_recog model. Works without Gemini."""
+    content, mime_type, file_info = await _read_upload(file)
+    result, error = await _run_ocr(content, mime_type)
+    return {"success": result is not None, "file": file_info, "ocr": result, "error": error}
+
+
 @app.post("/prescription_report", response_model=PrescriptionReportOut)
 async def prescription_report(
     file: UploadFile = File(...),
@@ -598,36 +651,36 @@ async def prescription_report(
 
     Requires env var GEMINI_API_KEY to enable extraction.
     """
-    max_bytes = int(os.getenv("PRESCRIPTION_MAX_BYTES", "10485760"))  # 10MB default
-    content = await file.read(max_bytes + 1)
-
-    if not content:
-        raise HTTPException(status_code=400, detail="Empty file")
-    if len(content) > max_bytes:
-        raise HTTPException(status_code=413, detail=f"File too large (max {max_bytes} bytes)")
-
-    filename = file.filename or "upload"
-    mime_type = _resolve_mime_type(file.content_type, filename)
-    file_info = {"filename": filename, "mime_type": mime_type, "size_bytes": len(content)}
-
-    if not mime_type.startswith(_SUPPORTED_UPLOAD_TYPES):
-        raise HTTPException(status_code=415, detail=f"Unsupported file type {mime_type}. Upload a PDF or an image.")
+    content, mime_type, file_info = await _read_upload(file)
+    # The scan is best-effort: formats OpenCV can't decode (e.g. HEIC) still go to Gemini.
+    ocr_result, _ocr_error = await _run_ocr(content, mime_type)
 
     try:
         # Gemini calls take 10-45 s; run them in a worker thread so the server stays responsive.
         extracted = await run_in_threadpool(
-            extract_prescription_structured, file_bytes=content, mime_type=mime_type, filename=filename
+            extract_prescription_structured,
+            file_bytes=content,
+            mime_type=mime_type,
+            filename=file_info["filename"],
+            ocr_result=ocr_result,
         )
     except (ValueError, TypeError):
         extracted = None
 
     if not extracted:
+        if not gemini_enabled():
+            logger.warning("prescription_report: GEMINI_API_KEY is not set; returning the handwriting scan only")
         return {
             "success": False,
             "file": file_info,
             "extracted": None,
             "diet_plan": None,
-            "error": "Could not read this document (check GEMINI_API_KEY on the server, or try a clearer photo).",
+            "ocr": ocr_result,
+            "error": (
+                "AI reading isn't available right now."
+                if not gemini_enabled()
+                else "The AI could not read this document. Try a sharper, well-lit photo."
+            ),
         }
 
     diet_plan = None
@@ -643,4 +696,11 @@ async def prescription_report(
         except (ValueError, TypeError):
             diet_plan = None
 
-    return {"success": True, "file": file_info, "extracted": extracted, "diet_plan": diet_plan, "error": None}
+    return {
+        "success": True,
+        "file": file_info,
+        "extracted": extracted,
+        "diet_plan": diet_plan,
+        "ocr": ocr_result,
+        "error": None,
+    }
