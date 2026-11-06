@@ -1,72 +1,25 @@
 import json
-import os
 from typing import Any, Dict, List, Optional
 
-import requests
-from requests import Response
-
-
-def _get_env(name: str, default: Optional[str] = None) -> Optional[str]:
-    value = os.getenv(name)
-    if value is None or value.strip() == "":
-        return default
-    return value
-
-
-def gemini_enabled() -> bool:
-    return bool(_get_env("GEMINI_API_KEY"))
+from gemini_client import gemini_enabled, generate, strip_code_fences
 
 
 def _call_gemini(prompt: str, *, timeout_s: int = 20) -> Optional[str]:
-    api_key = _get_env("GEMINI_API_KEY")
-    if not api_key:
-        return None
+    return generate([{"text": prompt}], temperature=0.3, max_output_tokens=768, json_mode=True, timeout_s=timeout_s)
 
-    model = _get_env("GEMINI_MODEL", "gemini-1.5-flash")
 
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={api_key}"
-    )
-
-    body = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.3,
-            "maxOutputTokens": 512,
-        },
-    }
-
+def _parse(text: str, list_key: str, fallback_title: str) -> Dict[str, Any]:
+    cleaned = strip_code_fences(text)
     try:
-        res: Response = requests.post(url, json=body, timeout=timeout_s)
-    except requests.exceptions.RequestException:
-        return None
-    if res.status_code >= 400:
-        return None
-
-    try:
-        data = res.json()
-    except ValueError:
-        return None
-
-    parts = (
-        data.get("candidates", [{}])[0]
-        .get("content", {})
-        .get("parts", [])
-    )
-    text = "\n".join([p.get("text", "") for p in parts if p.get("text")])
-    return text.strip() if text else None
-
-
-def _strip_code_fences(text: str) -> str:
-    t = text.strip()
-    if t.lower().startswith("```json"):
-        t = t[7:]
-    if t.startswith("```"):
-        t = t[3:]
-    if t.endswith("```"):
-        t = t[:-3]
-    return t.strip()
+        parsed = json.loads(cleaned)
+        if not isinstance(parsed, dict):
+            raise ValueError("not an object")
+    except (ValueError, json.JSONDecodeError):
+        parsed = {"title": fallback_title, "summary": cleaned, list_key: []}
+    # Frontends render `bullets`; keep the original key too for backward compatibility.
+    items = parsed.get(list_key)
+    parsed["bullets"] = items if isinstance(items, list) else []
+    return parsed
 
 
 def refine_recipe_tips(
@@ -79,26 +32,21 @@ def refine_recipe_tips(
     if not gemini_enabled():
         return None
 
-    small_recipes = []
-    for r in recipes[:5]:
-        small_recipes.append(
-            {
-                "Name": r.get("Name"),
-                "Calories": r.get("Calories"),
-                "ProteinContent": r.get("ProteinContent"),
-                "CarbohydrateContent": r.get("CarbohydrateContent"),
-                "FatContent": r.get("FatContent"),
-                "FiberContent": r.get("FiberContent"),
-                "pregnancy_benefits": r.get("pregnancy_benefits", []),
-                "RecipeIngredientParts": (r.get("RecipeIngredientParts") or [])[:12],
-            }
-        )
+    small_recipes = [
+        {
+            "Name": r.get("Name"),
+            "Calories": r.get("Calories"),
+            "ProteinContent": r.get("ProteinContent"),
+            "CarbohydrateContent": r.get("CarbohydrateContent"),
+            "FatContent": r.get("FatContent"),
+            "FiberContent": r.get("FiberContent"),
+            "pregnancy_benefits": r.get("pregnancy_benefits", []),
+            "RecipeIngredientParts": (r.get("RecipeIngredientParts") or [])[:12],
+        }
+        for r in recipes[:5]
+    ]
 
-    payload = {
-        "pregnancy_info": pregnancy_info,
-        "ingredients": ingredients,
-        "recipes": small_recipes,
-    }
+    payload = {"pregnancy_info": pregnancy_info, "ingredients": ingredients, "recipes": small_recipes}
 
     prompt = (
         "You are a helpful assistant for a pregnancy nutrition app.\n"
@@ -111,19 +59,11 @@ def refine_recipe_tips(
         "- title: short string\n"
         "- summary: 2-4 sentences\n"
         "- tips: 4-8 short strings\n"
-        "\nINPUT JSON:\n"
-        + json.dumps(payload)
+        "\nINPUT JSON:\n" + json.dumps(payload)
     )
 
     text = _call_gemini(prompt)
-    if not text:
-        return None
-
-    cleaned = _strip_code_fences(text)
-    try:
-        return json.loads(cleaned)
-    except (ValueError, json.JSONDecodeError):
-        return {"title": "Tips", "summary": cleaned, "tips": []}
+    return _parse(text, "tips", "Tips") if text else None
 
 
 def refine_risk_explanation(
@@ -148,16 +88,8 @@ def refine_risk_explanation(
         "- title: short string\n"
         "- summary: 2-4 sentences\n"
         "- next_steps: 3-6 short strings\n"
-        "\nINPUT JSON:\n"
-        + json.dumps(payload)
+        "\nINPUT JSON:\n" + json.dumps(payload)
     )
 
     text = _call_gemini(prompt)
-    if not text:
-        return None
-
-    cleaned = _strip_code_fences(text)
-    try:
-        return json.loads(cleaned)
-    except (ValueError, json.JSONDecodeError):
-        return {"title": "Explanation", "summary": cleaned, "next_steps": []}
+    return _parse(text, "next_steps", "Explanation") if text else None

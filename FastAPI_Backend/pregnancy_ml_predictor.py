@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.impute import SimpleImputer
 import joblib
+import threading
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -186,11 +187,11 @@ class PregnancyRiskPredictor:
             scaler = model_info['scaler']
             
             # Make prediction
+            X = pd.DataFrame([input_data], columns=self.feature_names)
             if scaler:
-                input_scaled = scaler.transform([input_data])
-                risk_prob = model.predict_proba(input_scaled)[0]
+                risk_prob = model.predict_proba(scaler.transform(X))[0]
             else:
-                risk_prob = model.predict_proba([input_data])[0]
+                risk_prob = model.predict_proba(X)[0]
             
             # Get prediction details
             risk_prediction = {
@@ -235,21 +236,21 @@ class PregnancyRiskPredictor:
                 feature_vector.append(1 if patient_data.get('mental_health_issues', False) else 0)
             elif feature == 'BMI_Category':
                 bmi = patient_data.get('bmi', 22.0)
-                if bmi < 18.5:
+                if bmi <= 18.5:  # pd.cut bins are right-inclusive, same as training
                     feature_vector.append(0)  # Underweight
-                elif bmi < 25:
+                elif bmi <= 25:
                     feature_vector.append(1)  # Normal
-                elif bmi < 30:
+                elif bmi <= 30:
                     feature_vector.append(2)  # Overweight
                 else:
                     feature_vector.append(3)  # Obese
             elif feature == 'Age_Category':
                 age = patient_data.get('age', 25)
-                if age < 20:
+                if age <= 20:
                     feature_vector.append(0)  # Teen
-                elif age < 30:
+                elif age <= 30:
                     feature_vector.append(1)  # Young Adult
-                elif age < 40:
+                elif age <= 40:
                     feature_vector.append(2)  # Adult
                 else:
                     feature_vector.append(3)  # Mature
@@ -320,7 +321,23 @@ class PregnancyRiskPredictor:
         
         if patient_data.get('mental_health_issues', False):
             risk_factors.append("Mental health concerns (may affect pregnancy outcomes)")
-        
+
+        # Vital signs the ML model does not use directly
+        if patient_data.get('body_temp', 98.6) >= 100.4:
+            risk_factors.append("Fever (needs prompt medical review in pregnancy)")
+        if patient_data.get('heart_rate', 75) > 110:
+            risk_factors.append("High resting heart rate (should be checked by a clinician)")
+
+        # Lifestyle answers (collected by the app; previously ignored)
+        if patient_data.get('smoking_history', False):
+            risk_factors.append("Smoking (risk of low birth weight and preterm birth)")
+        if patient_data.get('alcohol_consumption', 'none') in ('occasional', 'regular'):
+            risk_factors.append("Alcohol use (no amount is known to be safe in pregnancy)")
+        if patient_data.get('sleep_hours', 8) < 6:
+            risk_factors.append("Short sleep (under 6 hours)")
+        if patient_data.get('stress_level', 'low') == 'high':
+            risk_factors.append("High stress level")
+
         return risk_factors
     
     def get_recommendations(self, patient_data, risk_prediction):
@@ -343,7 +360,10 @@ class PregnancyRiskPredictor:
             recommendations['monitoring_requirements'].append("Regular fetal monitoring")
         
         # Specific recommendations based on risk factors
-        for factor in risk_factors:
+        for full_factor in risk_factors:
+            # Match on the label only. Matching the whole text made "Obesity (increased risk of gestational
+            # diabetes and hypertension)" trigger the diabetes AND blood-pressure advice.
+            factor = full_factor.split(" (")[0]
             if "blood sugar" in factor.lower() or "diabetes" in factor.lower():
                 recommendations['lifestyle_changes'].append("Follow strict diabetic diet plan")
                 recommendations['monitoring_requirements'].append("Daily blood glucose monitoring")
@@ -355,14 +375,24 @@ class PregnancyRiskPredictor:
                 recommendations['monitoring_requirements'].append("Blood pressure monitoring twice daily")
                 recommendations['medical_consultations'].append("Cardiologist consultation")
             
-            if "weight" in factor.lower() or "bmi" in factor.lower():
+            if "weight" in factor.lower() or "bmi" in factor.lower() or "obesity" in factor.lower():
                 recommendations['lifestyle_changes'].append("Follow pregnancy-appropriate nutrition plan")
                 recommendations['lifestyle_changes'].append("Gentle, supervised exercise routine")
                 recommendations['medical_consultations'].append("Nutritionist consultation")
             
-            if "mental health" in factor.lower():
+            if "mental health" in factor.lower() or "stress" in factor.lower():
                 recommendations['medical_consultations'].append("Mental health counselor consultation")
                 recommendations['lifestyle_changes'].append("Stress management and relaxation techniques")
+
+            if "fever" in factor.lower() or "heart rate" in factor.lower():
+                recommendations['immediate_actions'].append("Contact your doctor or midwife today about your temperature/heart rate")
+
+            if "smoking" in factor.lower():
+                recommendations['lifestyle_changes'].append("Stop smoking; ask your clinician about cessation support")
+                recommendations['medical_consultations'].append("Smoking cessation support")
+
+            if "sleep" in factor.lower():
+                recommendations['medical_consultations'].append("Mention poor sleep at your next prenatal visit")
         
         # General recommendations
         recommendations['lifestyle_changes'].extend([
@@ -371,26 +401,35 @@ class PregnancyRiskPredictor:
             "Stay hydrated (8-10 glasses of water daily)",
             "Avoid alcohol and smoking completely"
         ])
-        
-        return recommendations
+
+        # Several risk factors map to the same advice; keep each item once, in order.
+        return {key: list(dict.fromkeys(items)) for key, items in recommendations.items()}
     
     def save_model(self, filepath):
-        """Save the trained model to disk"""
+        """Save the trained model to disk (records the scikit-learn version it was built with)."""
         if self.is_trained:
+            import sklearn
             model_data = {
                 'models': self.models,
                 'scalers': self.scalers,
                 'feature_names': self.feature_names,
-                'feature_importance': self.feature_importance
+                'feature_importance': self.feature_importance,
+                'sklearn_version': sklearn.__version__,
             }
             joblib.dump(model_data, filepath)
             return True
         return False
-    
+
     def load_model(self, filepath):
-        """Load a pre-trained model from disk"""
+        """Load a pre-trained model. Refuses files built with a different scikit-learn version,
+        which either fail to unpickle or silently predict wrongly."""
         try:
+            import sklearn
             model_data = joblib.load(filepath)
+            if model_data.get('sklearn_version') != sklearn.__version__:
+                print(f"Model file {filepath} was built with scikit-learn "
+                      f"{model_data.get('sklearn_version', 'unknown')}, installed {sklearn.__version__}; ignoring it.")
+                return False
             self.models = model_data['models']
             self.scalers = model_data['scalers']
             self.feature_names = model_data['feature_names']
@@ -398,77 +437,89 @@ class PregnancyRiskPredictor:
             self.is_trained = True
             return True
         except Exception as e:
-            print(f"Error loading model: {e}")
+            print(f"Could not load model file {filepath}: {e}")
             return False
 
-# Initialize and train the model when this module is imported
+
+MODEL_PATH = os.getenv(
+    "PREGNANCY_MODEL_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pregnancy_risk_model.pkl'),
+)
+
+
+def _health_data_candidates():
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.getenv("HEALTH_DATA_PATH"),
+        os.path.join(here, "..", "Data", "health_data.csv"),  # monorepo layout
+        os.path.join(here, "Data", "health_data.csv"),  # Docker: /app/Data mounted
+        "/app/Data/health_data.csv",
+    ]
+    return [os.path.abspath(c) for c in candidates if c]
+
+
+def train_from_csv():
+    """Train a new predictor from health_data.csv. Returns (predictor, metrics) or (None, None)."""
+    for path in _health_data_candidates():
+        if not os.path.exists(path):
+            continue
+        with open(path, "rb") as f:
+            if f.read(40).startswith(b"version https://git-lfs"):
+                print(f"{path} is a Git LFS pointer; run `git lfs pull`.")
+                continue
+        predictor = PregnancyRiskPredictor()
+        df = predictor.prepare_data(path)
+        if df is None:
+            continue
+        metrics = predictor.train_models(df)
+        return predictor, metrics
+    print("Health data not found. Set HEALTH_DATA_PATH or mount Data/ to /app/Data.")
+    return None, None
+
+
 def initialize_pregnancy_predictor():
-    """Initialize the pregnancy risk predictor"""
+    """Load the shipped model; train from CSV only if it is missing or incompatible.
+
+    The old version retrained on every start and overwrote the committed .pkl (dirtying the repo),
+    and never loaded the shipped model, so the API failed whenever health_data.csv was absent.
+    """
     predictor = PregnancyRiskPredictor()
+    if os.path.exists(MODEL_PATH) and predictor.load_model(MODEL_PATH):
+        print(f"Pregnancy risk model loaded from {MODEL_PATH}")
+        return predictor
 
-    def _health_data_candidates():
-        candidates = []
-        env_path = os.getenv("HEALTH_DATA_PATH")
-        if env_path:
-            candidates.append(env_path)
-
-        # Monorepo layout: ../Data/health_data.csv from this file
-        candidates.append(
-            os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "Data", "health_data.csv")
-            )
-        )
-
-        # Docker layout: /app/Data/health_data.csv when mounted
-        candidates.append(
-            os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "Data", "health_data.csv")
-            )
-        )
-
-        # Absolute fallback
-        candidates.append("/Data/health_data.csv")
-
-        return candidates
-    
     try:
-        data_path = None
-        for candidate in _health_data_candidates():
-            if candidate and os.path.exists(candidate):
-                data_path = candidate
-                break
-
-        if not data_path:
-            print("Health data not found. Set HEALTH_DATA_PATH or mount Data/ to /app/Data.")
-            return None
-
-        # Load and prepare data
-        df = predictor.prepare_data(data_path)
-        if df is not None:
-            # Train models
-            results = predictor.train_models(df)
-            print("Pregnancy Risk Predictor trained successfully!")
-            print("Model Performance:")
-            for model_name, metrics in results.items():
-                print(f"  {model_name}: Accuracy = {metrics['accuracy']:.3f}, CV Score = {metrics['cv_mean']:.3f} (+/- {metrics['cv_std']:.3f})")
-            
-            # Save the trained model
-            model_path = os.path.join(os.path.dirname(__file__), 'pregnancy_risk_model.pkl')
-            predictor.save_model(model_path)
-            return predictor
-        else:
-            print("Failed to load health data")
-            return None
+        predictor, metrics = train_from_csv()
     except Exception as e:
-        print(f"Error initializing pregnancy predictor: {e}")
+        print(f"Error training pregnancy predictor: {e}")
         return None
+    if predictor is not None:
+        print("Pregnancy risk model trained at startup (run `python pregnancy_ml_predictor.py` to save it):")
+        for name, m in metrics.items():
+            print(f"  {name}: accuracy={m['accuracy']:.3f} cv={m['cv_mean']:.3f} (+/- {m['cv_std']:.3f})")
+    return predictor
 
-# Global predictor instance
-pregnancy_predictor = None
+
+_predictor = None
+_predictor_lock = threading.Lock()
+
 
 def get_pregnancy_predictor():
-    """Get the global pregnancy predictor instance"""
-    global pregnancy_predictor
-    if pregnancy_predictor is None:
-        pregnancy_predictor = initialize_pregnancy_predictor()
-    return pregnancy_predictor
+    """Get the global pregnancy predictor instance (thread-safe lazy init)."""
+    global _predictor
+    if _predictor is None:
+        with _predictor_lock:
+            if _predictor is None:
+                _predictor = initialize_pregnancy_predictor()
+    return _predictor
+
+
+if __name__ == "__main__":
+    # Retrain and save the model file that the API ships with.
+    trained, results = train_from_csv()
+    if trained is None:
+        raise SystemExit("Training failed: health_data.csv not found")
+    for name, m in results.items():
+        print(f"{name}: accuracy={m['accuracy']:.3f} cv={m['cv_mean']:.3f} (+/- {m['cv_std']:.3f})")
+    trained.save_model(MODEL_PATH)
+    print(f"Saved {MODEL_PATH}")

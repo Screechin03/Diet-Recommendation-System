@@ -4,8 +4,7 @@ import os
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
-import requests
-from requests import Response
+from gemini_client import gemini_enabled, generate, strip_code_fences
 
 
 IMG_SIZE = 32
@@ -23,65 +22,19 @@ def _get_env(name: str, default: Optional[str] = None) -> Optional[str]:
     return value
 
 
-def gemini_enabled() -> bool:
-    return bool(_get_env("GEMINI_API_KEY"))
-
-
 def _strip_code_fences(text: str) -> str:
-    t = text.strip()
-    if t.lower().startswith("```json"):
-        t = t[7:]
-    if t.startswith("```"):
-        t = t[3:]
-    if t.endswith("```"):
-        t = t[:-3]
-    return t.strip()
+    return strip_code_fences(text)
 
 
 def _call_gemini_parts(parts: list[dict[str, Any]], *, timeout_s: int = 45) -> Optional[str]:
-    api_key = _get_env("GEMINI_API_KEY")
-    if not api_key:
-        return None
-
-    model = (
-        _get_env("GEMINI_PRESCRIPTION_MODEL")
-        or _get_env("GEMINI_MODEL")
-        or "gemini-1.5-flash"
+    return generate(
+        parts,
+        temperature=0.2,
+        max_output_tokens=4096,
+        json_mode=True,
+        timeout_s=timeout_s,
+        preferred_env="GEMINI_PRESCRIPTION_MODEL",
     )
-
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={api_key}"
-    )
-
-    body = {
-        "contents": [{"role": "user", "parts": parts}],
-        "generationConfig": {
-            "temperature": 0.2,
-            "maxOutputTokens": 4096,
-            "responseMimeType": "application/json",
-        },
-    }
-
-    try:
-        res: Response = requests.post(url, json=body, timeout=timeout_s)
-    except requests.exceptions.RequestException:
-        return None
-    if res.status_code >= 400:
-        return None
-
-    try:
-        data = res.json()
-    except ValueError:
-        return None
-
-    candidate_parts = (
-        data.get("candidates", [{}])[0]
-        .get("content", {})
-        .get("parts", [])
-    )
-    text = "\n".join([p.get("text", "") for p in candidate_parts if p.get("text")])
-    return text.strip() if text else None
 
 
 def _inline_data_part(file_bytes: bytes, mime_type: str) -> dict[str, Any]:
@@ -389,7 +342,11 @@ def extract_prescription_structured(
     if not gemini_enabled():
         return None
 
-    ocr_assist = _run_ocr_assist(file_bytes=file_bytes, mime_type=mime_type)
+    try:
+        # Optional local handwriting OCR (needs h_recog + tensorflow + opencv); never fatal.
+        ocr_assist = _run_ocr_assist(file_bytes=file_bytes, mime_type=mime_type)
+    except Exception:  # noqa: BLE001 - any OCR failure just means "no OCR assist"
+        ocr_assist = None
 
     ocr_assist_prompt = ""
     if ocr_assist:
