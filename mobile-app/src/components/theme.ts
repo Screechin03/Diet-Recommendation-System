@@ -14,7 +14,11 @@ const light = {
   danger: "#C92A2A",
   dangerSoft: "#FFECEC",
   warn: "#E67700",
+  warnSoft: "#FFF4E0",
+  info: "#1971C2",
+  infoSoft: "#E7F1FB",
   input: "#FFFFFF",
+  muted2: "#F6EEF1",
 };
 
 const dark: typeof light = {
@@ -31,7 +35,11 @@ const dark: typeof light = {
   danger: "#FF8787",
   dangerSoft: "#3A1C1C",
   warn: "#FFA94D",
+  warnSoft: "#3A2A14",
+  info: "#74C0FC",
+  infoSoft: "#14273A",
   input: "#1B1418",
+  muted2: "#2B2126",
 };
 
 export type Theme = typeof light;

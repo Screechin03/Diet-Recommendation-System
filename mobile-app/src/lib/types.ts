@@ -110,16 +110,9 @@ export interface RefinedSummary {
   bullets?: string[];
 }
 
-export interface PrescriptionReport {
-  success: boolean;
-  file: { filename: string; mime_type: string; size_bytes: number };
-  extracted?: Record<string, unknown> | null;
-  diet_plan?: Record<string, unknown> | null;
-  error?: string | null;
-}
-
 export interface PickedFile {
   uri: string;
   name: string;
   mimeType: string;
+  size?: number | null;
 }
