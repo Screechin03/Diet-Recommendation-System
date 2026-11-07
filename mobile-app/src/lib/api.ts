@@ -17,6 +17,7 @@ import type {
   RiskPredictionOut,
 } from "./types";
 import { friendlyError, type HandwritingApiResponse, type PrescriptionApiResponse } from "./report";
+import type { VitalsAnalysis } from "./vitals";
 
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -56,7 +57,9 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = REQUEST_
 
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(path.includes("prescription") || path.includes("ocr") ? friendlyError(res.status, text) : errorMessageFrom(text, res.status));
+    throw new Error(
+      /prescription|ocr|vitals/.test(path) ? friendlyError(res.status, text) : errorMessageFrom(text, res.status),
+    );
   }
   try {
     return JSON.parse(text) as T;
@@ -120,6 +123,56 @@ export function prescriptionReport(
 /** Next.js /api/ocr_handwriting → FastAPI POST /ocr/handwriting (h_recog block-letter model, no AI key needed). */
 export function scanHandwriting(file: PickedFile): Promise<HandwritingApiResponse> {
   return request<HandwritingApiResponse>("/api/ocr_handwriting", { method: "POST", body: uploadForm(file) }, 45_000);
+}
+
+// ---------------------------------------------------------------------------
+// Vitals device (protocol: Docs/DEVICE_PROTOCOL.md). Phones read the SD-card file; live USB is on the website.
+// ---------------------------------------------------------------------------
+
+/** SD-card session file → /api/vitals/analyze_file. */
+export function analyzeVitalsFile(
+  file: PickedFile,
+  opts: { pregnancyMonth: number | null; activity: "rest" | "exercise" },
+): Promise<VitalsAnalysis> {
+  const form = uploadForm(file);
+  if (opts.pregnancyMonth) form.append("pregnancy_month", String(opts.pregnancyMonth));
+  form.append("activity", opts.activity);
+  return request<VitalsAnalysis>("/api/vitals/analyze_file", { method: "POST", body: form }, 60_000);
+}
+
+/** Simulated session (sample data) → analysis, for trying the feature without the device. */
+export async function analyzeVitalsDemo(
+  scenario: string,
+  opts: { pregnancyMonth: number | null; activity: "rest" | "exercise" },
+): Promise<VitalsAnalysis> {
+  const demo = await request<{ lines: string[] }>(`/api/vitals/demo?scenario=${encodeURIComponent(scenario)}&seconds=120`);
+  return postJson<VitalsAnalysis>("/api/vitals/analyze", {
+    lines: demo.lines,
+    pregnancy_month: opts.pregnancyMonth,
+    activity: opts.activity,
+  });
+}
+
+/** PDF report bytes for an analysis (/api/vitals/report). */
+export async function vitalsReportPdf(analysis: VitalsAnalysis, patient: { name?: string | null; pregnancy_month?: number | null }): Promise<ArrayBuffer> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45_000);
+  try {
+    const res = await fetch(`${apiBaseUrl()}/api/vitals/report`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ analysis, patient }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(friendlyError(res.status, await res.text()));
+    return await res.arrayBuffer();
+  } catch (e) {
+    if (controller.signal.aborted) throw new Error("Creating the report took too long. Please try again.");
+    if (e instanceof Error && e.message && !(e instanceof TypeError)) throw e;
+    throw new Error("Could not reach the server. Check your internet connection.");
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Next.js /api/recipe_image → resolves a matching photo URL (TheMealDB/Wikimedia/Gemini). */

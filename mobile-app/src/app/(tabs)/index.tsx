@@ -20,6 +20,12 @@ const FEATURES: Array<{ href: Href; icon: ComponentProps<typeof Ionicons>["name"
     text: "Enter your vitals and get an ML-based risk assessment with next steps.",
   },
   {
+    href: "/vitals",
+    icon: "pulse-outline",
+    title: "Device vital signs",
+    text: "Heart rate, oxygen, temperature and ECG from the MamaCare device, with a report for your doctor.",
+  },
+  {
     href: "/report",
     icon: "document-text-outline",
     title: "Prescription reader",

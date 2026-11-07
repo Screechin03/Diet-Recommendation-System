@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, conlist
 from starlette.concurrency import run_in_threadpool
 
@@ -32,6 +32,10 @@ from gemini_client import gemini_enabled
 from gemini_refiner import refine_recipe_tips, refine_risk_explanation
 from model import SEARCH_COLUMN, build_search_text, output_recommended_recipes, recommend
 from ocr import handwriting as handwriting_ocr
+from vitals.analysis import analyze as analyze_vitals
+from vitals.protocol import ProtocolError, parse_bytes as parse_vitals_bytes, parse_lines as parse_vitals_lines
+from vitals.report_pdf import build_report as build_vitals_report
+from vitals.simulate import SCENARIOS as VITALS_SCENARIOS, generate as simulate_vitals
 from pregnancy_ml_predictor import get_pregnancy_predictor
 
 logger = logging.getLogger("pregnancy_api")
@@ -467,6 +471,10 @@ def endpoints():
              "purpose": "Upload a PDF/image report (multipart: file, dietary_preferences, allergies, goals, include_diet_plan)"},
             {"method": "POST", "path": "/ocr/handwriting",
              "purpose": "Read block-letter handwriting from a photo/PDF (multipart: file); no Gemini needed"},
+            {"method": "POST", "path": "/vitals/analyze", "purpose": "Analyse a vitals device session (JSON: lines)"},
+            {"method": "POST", "path": "/vitals/analyze_file", "purpose": "Analyse an SD-card session file (multipart: file)"},
+            {"method": "POST", "path": "/vitals/report", "purpose": "PDF report from an analysis"},
+            {"method": "GET", "path": "/vitals/demo", "purpose": "Simulated session (sample data)"},
             {"method": "GET", "path": "/health", "purpose": "Readiness check"},
         ],
     }
@@ -629,6 +637,89 @@ async def _run_ocr(content: bytes, mime_type: str) -> Tuple[Optional[Dict[str, A
     except Exception:  # noqa: BLE001 - a scanner bug must not break the report
         logger.exception("Handwriting OCR failed")
         return None, "Handwriting scan failed for this file."
+
+
+# ---------------------------------------------------------------------------
+# Vitals device (ESP32: MAX30102 + AD8232). Protocol: Docs/DEVICE_PROTOCOL.md
+# ---------------------------------------------------------------------------
+
+VITALS_MAX_LINE_CHARS = 20_000
+VITALS_MAX_FILE_BYTES = 25 * 1024 * 1024
+
+
+class VitalsAnalyzeIn(BaseModel):
+    lines: conlist(str, max_items=250_000)
+    pregnancy_month: Optional[int] = Field(None, ge=1, le=9)
+    activity: Literal["rest", "exercise"] = "rest"
+
+
+class VitalsPatient(BaseModel):
+    name: Optional[str] = Field(None, max_length=80)
+    pregnancy_month: Optional[int] = Field(None, ge=1, le=9)
+
+
+class VitalsReportIn(BaseModel):
+    analysis: Dict[str, Any]
+    patient: VitalsPatient = VitalsPatient()
+
+
+def _vitals_result(session, pregnancy_month: Optional[int], activity: str) -> Dict[str, Any]:
+    return analyze_vitals(session, pregnancy_month=pregnancy_month, activity=activity)
+
+
+@app.post("/vitals/analyze")
+def vitals_analyze(body: VitalsAnalyzeIn):
+    """Analyse a session sent as protocol lines (live USB capture from the website)."""
+    try:
+        session = parse_vitals_lines(line for line in body.lines if len(line) <= VITALS_MAX_LINE_CHARS)
+    except ProtocolError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    return _vitals_result(session, body.pregnancy_month, body.activity)
+
+
+@app.post("/vitals/analyze_file")
+async def vitals_analyze_file(
+    file: UploadFile = File(...),
+    pregnancy_month: Optional[int] = Form(None),
+    activity: str = Form("rest"),
+):
+    """Analyse a session file copied from the device's SD card (.jsonl / .txt)."""
+    content = await file.read(VITALS_MAX_FILE_BYTES + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(content) > VITALS_MAX_FILE_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 25 MB, about 30 minutes of recording)")
+    if pregnancy_month is not None and not 1 <= pregnancy_month <= 9:
+        raise HTTPException(status_code=422, detail="pregnancy_month must be between 1 and 9")
+    if activity not in ("rest", "exercise"):
+        raise HTTPException(status_code=422, detail="activity must be 'rest' or 'exercise'")
+    try:
+        session = await run_in_threadpool(parse_vitals_bytes, content)
+    except ProtocolError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    return await run_in_threadpool(_vitals_result, session, pregnancy_month, activity)
+
+
+@app.post("/vitals/report")
+def vitals_report(body: VitalsReportIn):
+    """PDF report of an analysis, for the patient to keep or share with her doctor."""
+    pdf = build_vitals_report(body.analysis, body.patient.dict())
+    stamp = str(body.analysis.get("analyzed_at") or "")[:10] or "report"
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="mamacare-vitals-{stamp}.pdf"'},
+    )
+
+
+@app.get("/vitals/demo")
+def vitals_demo(scenario: str = "normal", seconds: int = 120):
+    """Simulated device session (marked as sample data) for demos and testing without hardware."""
+    if scenario not in VITALS_SCENARIOS:
+        raise HTTPException(status_code=422, detail=f"scenario must be one of: {', '.join(VITALS_SCENARIOS)}")
+    if not 30 <= seconds <= 600:
+        raise HTTPException(status_code=422, detail="seconds must be between 30 and 600")
+    return {"scenario": scenario, "lines": simulate_vitals(scenario, seconds)}
 
 
 @app.post("/ocr/handwriting", response_model=HandwritingOut)
