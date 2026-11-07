@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="signup" options={{ title: "Create account", presentation: "modal" }} />
         <Stack.Screen name="saved" options={{ title: "Saved recipes" }} />
         <Stack.Screen name="history" options={{ title: "Recommendation history" }} />
+        <Stack.Screen name="vitals" options={{ title: "Vital signs" }} />
       </Stack>
     </AuthProvider>
   );

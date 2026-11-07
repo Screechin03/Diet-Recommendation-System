@@ -31,6 +31,10 @@ Needs about **600 MB RAM**: the recipe dataset is held in memory. Host it on an 
 - `GET /model_performance`: model diagnostics
 - `POST /batch_risk_assessment`: up to 100 patients
 - `POST /prescription_report`: multipart PDF/image upload, returns a structured report plus a diet plan (needs Gemini)
+- `POST /vitals/analyze`: analyse a vitals-device session sent as protocol lines (JSON: `lines`, optional `pregnancy_month`, `activity`)
+- `POST /vitals/analyze_file`: analyse an SD-card session file (multipart: `file`)
+- `POST /vitals/report`: PDF report from an analysis (JSON: `analysis`, optional `patient`)
+- `GET /vitals/demo?scenario=…`: simulated session, marked as sample data
 - `GET /endpoints`: endpoint list; `GET /docs`: Swagger UI
 
 Invalid input returns **422** with a readable `detail` string.
@@ -48,6 +52,20 @@ Invalid input returns **422** with a readable `detail` string.
 
 Food.com ingredient lists are sometimes incomplete, so allergy filtering is best-effort. Users with severe
 allergies should always read the full recipe.
+
+## Vitals device (ESP32: MAX30102 + AD8232)
+
+Code in `vitals/`; data format in `Docs/DEVICE_PROTOCOL.md`.
+
+- **`protocol.py`:** parses one JSON object per line. Malformed lines are skipped, out-of-range values rejected, and a
+  device reboot inside a file keeps only the latest session.
+- **`analysis.py`:** checks each reading against pregnancy screening thresholds, and only flags values that are
+  *sustained* (rolling medians), so one motion artefact never raises an alert. It also handles the ECG:
+  - beat detection (simplified Pan-Tompkins) and HRV;
+  - an irregular-rhythm check;
+  - a beat-shape signal-quality check, so noise is reported as "not analysable" instead of producing a made-up heart rate.
+- **`report_pdf.py`:** builds the patient PDF, with the ECG on standard 25 mm/s paper and a "SAMPLE DATA" watermark for demos.
+- **`simulate.py`:** produces synthetic sessions (`python -m vitals.simulate --scenario irregular`).
 
 ## Risk model
 

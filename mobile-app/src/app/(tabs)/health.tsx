@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   Body,
   Bullets,
@@ -128,6 +130,26 @@ export default function HealthScreen() {
 
   return (
     <Screen>
+      <Pressable
+        onPress={() => router.push("/vitals")}
+        accessibilityRole="button"
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          padding: 14,
+          borderRadius: 16,
+          backgroundColor: t.primarySoft,
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <Ionicons name="hardware-chip-outline" size={22} color={t.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.text, fontWeight: "700" }}>Have the MamaCare device?</Text>
+          <Text style={{ color: t.muted, fontSize: 13 }}>Analyse its heart rate, oxygen and ECG readings</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={t.muted} />
+      </Pressable>
       <Card>
         <SectionLabel>Vitals</SectionLabel>
         <Row>

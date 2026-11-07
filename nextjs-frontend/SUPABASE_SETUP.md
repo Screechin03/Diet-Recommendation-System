@@ -148,3 +148,33 @@ If email confirmation is disabled:
 - Logged-in users can click Save recipe on planner/finder result cards.
 - Saved recipes are visible on `/saved-recipes`.
 - Recommendation history is logged automatically on `/diet-planner` and `/recipe-finder` and visible on `/history`.
+
+## 5) Vitals device sessions (heart rate, SpO2, temperature, ECG)
+
+Run this SQL to let signed-in users keep their device readings (web and phone app):
+
+create table if not exists public.vital_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  status text not null check (status in ('normal','attention','urgent','insufficient')),
+  headline text not null,
+  duration_s integer not null,
+  analysis jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists vital_sessions_user_created_idx
+  on public.vital_sessions (user_id, created_at desc);
+
+alter table public.vital_sessions enable row level security;
+
+drop policy if exists "vital_sessions_select_own" on public.vital_sessions;
+drop policy if exists "vital_sessions_insert_own" on public.vital_sessions;
+drop policy if exists "vital_sessions_delete_own" on public.vital_sessions;
+
+create policy "vital_sessions_select_own" on public.vital_sessions
+  for select to authenticated using (auth.uid() = user_id);
+create policy "vital_sessions_insert_own" on public.vital_sessions
+  for insert to authenticated with check (auth.uid() = user_id);
+create policy "vital_sessions_delete_own" on public.vital_sessions
+  for delete to authenticated using (auth.uid() = user_id);

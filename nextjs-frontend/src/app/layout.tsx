@@ -59,6 +59,12 @@ export default function RootLayout({
                     Health Analytics
                   </Link>
                   <Link
+                    href="/vitals"
+                    className="rounded-md px-3 py-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                  >
+                    Vitals
+                  </Link>
+                  <Link
                     href="/features"
                     className="rounded-md px-3 py-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900"
                   >

@@ -1,4 +1,5 @@
 import type { Recipe } from "@/lib/types";
+import type { VitalsAnalysis } from "@/lib/vitals";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 export interface UserProfileRow {
@@ -104,5 +105,53 @@ export async function upsertUserProfileForUser(
     { onConflict: "id" },
   );
 
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// Vitals sessions from the MamaCare device (table: vital_sessions, see SUPABASE_SETUP.md)
+// ---------------------------------------------------------------------------
+
+export interface VitalSessionRow {
+  id: string;
+  status: string;
+  headline: string;
+  duration_s: number;
+  analysis: VitalsAnalysis;
+  created_at: string;
+}
+
+export async function saveVitalSession(userId: string, analysis: VitalsAnalysis): Promise<string> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("vital_sessions")
+    .insert({
+      user_id: userId,
+      status: analysis.status,
+      headline: analysis.headline,
+      duration_s: analysis.session.duration_s,
+      analysis,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return (data as { id: string }).id;
+}
+
+export async function getVitalSessions(userId: string): Promise<VitalSessionRow[]> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("vital_sessions")
+    .select("id, status, headline, duration_s, analysis, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return (data ?? []) as VitalSessionRow[];
+}
+
+export async function deleteVitalSession(userId: string, id: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from("vital_sessions").delete().eq("user_id", userId).eq("id", id);
   if (error) throw error;
 }
