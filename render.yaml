@@ -1,0 +1,16 @@
+# Render Blueprint for the FastAPI ML backend.
+# Render dashboard -> New -> Blueprint -> pick this repo. Secrets marked `sync: false` are asked for on first deploy.
+services:
+  - type: web
+    name: mamacare-backend
+    runtime: docker
+    dockerfilePath: ./FastAPI_Backend/Dockerfile
+    dockerContext: ./FastAPI_Backend
+    # The 338k-recipe dataset needs ~670 MB RAM at steady state (~800 MB peak while loading).
+    # Free / Starter instances (512 MB) are OOM-killed on boot, so use Standard (2 GB) or larger.
+    plan: standard
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
