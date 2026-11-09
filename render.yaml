@@ -6,9 +6,10 @@ services:
     runtime: docker
     dockerfilePath: ./FastAPI_Backend/Dockerfile
     dockerContext: ./FastAPI_Backend
-    # The 338k-recipe dataset needs ~670 MB RAM at steady state (~800 MB peak while loading).
-    # Free / Starter instances (512 MB) are OOM-killed on boot, so use Standard (2 GB) or larger.
-    plan: standard
+    # Fits the free 512 MB instance: the image converts the dataset into a SQLite store
+    # (recipe_store.py), so the API peaks at ~420 MB instead of ~800 MB.
+    # Free instances sleep after 15 min idle; the first request after that takes ~1 min.
+    plan: free
     healthCheckPath: /health
     autoDeploy: true
     envVars:
