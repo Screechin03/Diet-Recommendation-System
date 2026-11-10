@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mamacare.app"
+      "bundleIdentifier": "com.team.mamacare"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.mamacare.app",
+      "package": "com.team.mamacare",
       "backgroundColor": "#FFF7F9"
     },
     "web": {

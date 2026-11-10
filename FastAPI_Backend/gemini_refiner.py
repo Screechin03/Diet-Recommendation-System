@@ -8,10 +8,30 @@ def _call_gemini(prompt: str, *, timeout_s: int = 20) -> Optional[str]:
     return generate([{"text": prompt}], temperature=0.3, max_output_tokens=768, json_mode=True, timeout_s=timeout_s)
 
 
+def _object_from_list(items: List[Any], list_key: str, fallback_title: str) -> Optional[Dict[str, Any]]:
+    """Lighter models sometimes answer with an array (the object wrapped in a list, or one entry per recipe)."""
+    dicts = [x for x in items if isinstance(x, dict)]
+    if len(dicts) == 1 and list_key in dicts[0]:
+        return dicts[0]
+    bullets = []
+    for x in items:
+        if isinstance(x, str) and x.strip():
+            bullets.append(x.strip())
+        elif isinstance(x, dict):
+            head = str(x.get("title") or x.get("name") or x.get("Name") or "").strip()
+            body = str(x.get("summary") or x.get("tip") or x.get("text") or "").strip()
+            line = f"{head}: {body}" if head and body else head or body
+            if line:
+                bullets.append(line)
+    return {"title": fallback_title, "summary": "", list_key: bullets} if bullets else None
+
+
 def _parse(text: str, list_key: str, fallback_title: str) -> Dict[str, Any]:
     cleaned = strip_code_fences(text)
     try:
         parsed = json.loads(cleaned)
+        if isinstance(parsed, list):
+            parsed = _object_from_list(parsed, list_key, fallback_title)
         if not isinstance(parsed, dict):
             raise ValueError("not an object")
     except (ValueError, json.JSONDecodeError):
@@ -55,7 +75,7 @@ def refine_recipe_tips(
         "- Do NOT change numeric nutrition values.\n"
         "- Only explain the given recipes and give practical, non-medical tips.\n"
         "- If safety is relevant, include: 'Consult your clinician for personalized advice.'\n"
-        "OUTPUT FORMAT: Return JSON ONLY with keys: title, summary, tips.\n"
+        "OUTPUT FORMAT: Return ONE JSON object (not an array) with exactly the keys: title, summary, tips.\n"
         "- title: short string\n"
         "- summary: 2-4 sentences\n"
         "- tips: 4-8 short strings\n"
@@ -84,7 +104,7 @@ def refine_risk_explanation(
         "- Do NOT invent measurements.\n"
         "- Explain the provided risk output in plain language and suggest safe next-step questions.\n"
         "- Include: 'This is not medical advice. Consult a clinician.'\n"
-        "OUTPUT FORMAT: Return JSON ONLY with keys: title, summary, next_steps.\n"
+        "OUTPUT FORMAT: Return ONE JSON object (not an array) with exactly the keys: title, summary, next_steps.\n"
         "- title: short string\n"
         "- summary: 2-4 sentences\n"
         "- next_steps: 3-6 short strings\n"

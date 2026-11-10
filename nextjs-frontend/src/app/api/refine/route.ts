@@ -74,7 +74,9 @@ async function callGemini(prompt: string) {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 512,
+      // 512 cut answers off mid-JSON (UI then showed raw JSON under "Refined").
+      maxOutputTokens: 1024,
+      responseMimeType: "application/json",
     },
   };
 
