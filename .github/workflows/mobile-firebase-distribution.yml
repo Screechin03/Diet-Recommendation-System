@@ -1,0 +1,79 @@
+# Push to main that touches mobile-app/ -> EAS cloud build (Android APK) -> Firebase App Distribution,
+# which emails the "testers" group automatically.
+#
+# Repo secrets needed (Settings -> Secrets and variables -> Actions):
+#   EXPO_TOKEN                 expo.dev -> Account settings -> Access tokens
+#   FIREBASE_APP_ID            Firebase -> Project settings -> Your apps (1:...:android:...)
+#   FIREBASE_SERVICE_ACCOUNT   JSON key of a Google Cloud service account with the
+#                              "Firebase App Distribution Admin" role
+#
+# Skip a build for a commit by putting [skip ci] in its message. Run it by hand from the Actions tab.
+name: Mobile → Firebase testers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile-app/**"
+      - ".github/workflows/mobile-firebase-distribution.yml"
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: "Release notes for testers (default: the commit message)"
+        required: false
+
+# A newer push supersedes a build that is still waiting (saves free EAS builds).
+concurrency:
+  group: mobile-firebase-distribution
+  cancel-in-progress: true
+
+jobs:
+  build-and-distribute:
+    runs-on: ubuntu-latest
+    # Free EAS queue (~50 min) + build (~15 min).
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: mobile-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile-app/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build APK on EAS (preview profile) and wait
+        id: build
+        run: |
+          eas build --platform android --profile preview --non-interactive --wait --json > build.json
+          url=$(jq -r '.[0].artifacts.buildUrl // .[0].artifacts.applicationArchiveUrl // empty' build.json)
+          if [ -z "$url" ]; then echo "No APK URL in EAS output:"; cat build.json; exit 1; fi
+          echo "version=$(jq -r '"\(.[0].appVersion) (\(.[0].appBuildVersion))"' build.json)" >> "$GITHUB_OUTPUT"
+          curl -fsSL -o mamacare.apk "$url"
+
+      - name: Upload to Firebase App Distribution (emails testers)
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          MANUAL_NOTES: ${{ github.event.inputs.release_notes }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          VERSION: ${{ steps.build.outputs.version }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+          notes="${MANUAL_NOTES:-$COMMIT_MESSAGE}"
+          printf 'MamaCare %s\n\n%s\n' "$VERSION" "${notes:-New test build}" > "$RUNNER_TEMP/notes.txt"
+          npx --yes firebase-tools@latest appdistribution:distribute mamacare.apk \
+            --app "$FIREBASE_APP_ID" \
+            --groups testers \
+            --release-notes-file "$RUNNER_TEMP/notes.txt"
