@@ -52,6 +52,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Version name follows the build number: build 3 -> 1.0.3, build 4 -> 1.0.4 ...
+      # Major.minor come from app.json ("1.0" in "1.0.0"); change them there for 1.1.x / 2.0.x.
+      # Only this CI copy of app.json is changed; nothing is committed back.
+      - name: Set version name from the next build number
+        run: |
+          current=$(eas build:version:get --platform android --profile preview --json 2>/dev/null | jq -r '.versionCode // "0"')
+          next=$(( ${current:-0} + 1 ))
+          major_minor=$(jq -r '.expo.version' app.json | cut -d. -f1,2)
+          version="$major_minor.$next"
+          jq --arg v "$version" '.expo.version = $v' app.json > app.json.tmp && mv app.json.tmp app.json
+          echo "Building version $version (build $next)"
+
       - name: Build APK on EAS (preview profile) and wait
         id: build
         run: |

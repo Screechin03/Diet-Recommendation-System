@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   ActivityIndicator,
   Pressable,
@@ -89,6 +90,37 @@ export function Field({ label, hint, ...props }: TextInputProps & { label: strin
           { backgroundColor: t.input, borderColor: t.border, color: t.text },
         ]}
       />
+      {hint ? <Text style={[styles.hint, { color: t.muted }]}>{hint}</Text> : null}
+    </View>
+  );
+}
+
+/** Password input with an eye button to show or hide what was typed. */
+export function PasswordField({ label, hint, ...props }: Omit<TextInputProps, "secureTextEntry"> & { label: string; hint?: string }) {
+  const t = useTheme();
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={styles.field}>
+      <Text style={[styles.label, { color: t.text }]}>{label}</Text>
+      <View>
+        <TextInput
+          placeholderTextColor={t.muted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          {...props}
+          secureTextEntry={!visible}
+          style={[styles.input, styles.passwordInput, { backgroundColor: t.input, borderColor: t.border, color: t.text }]}
+        />
+        <Pressable
+          onPress={() => setVisible((v) => !v)}
+          accessibilityRole="button"
+          accessibilityLabel={visible ? "Hide password" : "Show password"}
+          hitSlop={8}
+          style={styles.eye}
+        >
+          <Ionicons name={visible ? "eye-off-outline" : "eye-outline"} size={22} color={t.muted} />
+        </Pressable>
+      </View>
       {hint ? <Text style={[styles.hint, { color: t.muted }]}>{hint}</Text> : null}
     </View>
   );
@@ -243,6 +275,8 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: "600" },
   input: { borderWidth: 1, borderRadius: 10, minHeight: 46, paddingHorizontal: 12, fontSize: 16 },
   hint: { fontSize: 12 },
+  passwordInput: { paddingRight: 48 },
+  eye: { position: "absolute", right: 0, top: 0, bottom: 0, width: 48, alignItems: "center", justifyContent: "center" },
   toggleRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },

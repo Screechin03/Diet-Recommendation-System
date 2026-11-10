@@ -2,6 +2,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let supabase: SupabaseClient | null = null;
 
+/** Where sign-up confirmation emails land (see app/email-verified). */
+export const EMAIL_VERIFIED_PATH = "/email-verified";
+
 export function getSupabaseBrowserClient(): SupabaseClient {
   if (supabase) return supabase;
 
@@ -20,7 +23,9 @@ export function getSupabaseBrowserClient(): SupabaseClient {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      // The email-confirmation landing page must not log people in from the link's tokens.
+      detectSessionInUrl:
+        typeof window === "undefined" || !window.location.pathname.startsWith(EMAIL_VERIFIED_PATH),
     },
   });
 
