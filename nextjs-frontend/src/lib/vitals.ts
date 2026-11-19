@@ -57,6 +57,81 @@ export function parseDeviceLine(line: string): DeviceMsg | null {
 }
 
 // ---------------------------------------------------------------------------
+// Firmware troubleshooting: explains why a line (or a value in it) is ignored.
+// ---------------------------------------------------------------------------
+
+const KNOWN_FIELDS: Record<string, string[]> = {
+  hello: ["t", "v", "device", "fw", "ecg_hz", "adc_bits"],
+  vitals: ["t", "ms", "hr", "spo2", "temp_c", "finger"],
+  ecg: ["t", "ms", "lo", "s"],
+  end: ["t", "ms"],
+};
+const BP_FIELD = /^(bp|sbp|dbp|sys|dia|systolic|diastolic|blood_?pressure|map)$/i;
+const RANGES: Record<string, [number, number, string]> = {
+  hr: [30, 220, "bpm"],
+  spo2: [70, 100, "%"],
+  temp_c: [30, 43, "°C"],
+};
+
+/** Plain-language problems with one device line, for the troubleshooting panel. Empty = line is fine. */
+export function checkDeviceLine(line: string, adcBits = 12): string[] {
+  const trimmed = line.trim();
+  if (!trimmed) return [];
+  if (!trimmed.startsWith("{")) return ["Not a JSON line (debug print?), ignored."];
+  let o: Record<string, unknown>;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return ["Not a JSON object, ignored."];
+    o = parsed as Record<string, unknown>;
+  } catch {
+    return ["Broken JSON (cut off or a typo), ignored."];
+  }
+  const type = typeof o.t === "string" ? o.t : null;
+  if (!type || !KNOWN_FIELDS[type]) {
+    return [type ? `Unknown type "t":"${type}", ignored.` : 'Missing the "t" type field, ignored.'];
+  }
+  const issues: string[] = [];
+  for (const key of Object.keys(o)) {
+    if (KNOWN_FIELDS[type].includes(key)) continue;
+    issues.push(
+      BP_FIELD.test(key)
+        ? `"${key}" (blood pressure?) isn't part of the protocol: the MAX30102 and AD8232 can't measure blood pressure, so the app ignores it.`
+        : `Unknown field "${key}", ignored.`,
+    );
+  }
+  if (type !== "hello" && (typeof o.ms !== "number" || o.ms < 0)) issues.push('"ms" is missing or not a number: the whole line is ignored.');
+
+  if (type === "vitals") {
+    const finger = o.finger !== false;
+    for (const [key, [lo, hi, unit]] of Object.entries(RANGES)) {
+      const v = o[key];
+      if (v === undefined || v === null) continue;
+      if (typeof v !== "number" || !Number.isFinite(v)) {
+        issues.push(`"${key}" must be a number, got ${JSON.stringify(v)}: ignored.`);
+      } else if (v === 0 || v === -999 || v === -1) {
+        issues.push(`"${key}":${v} looks like a placeholder. Send null when there is no valid reading.`);
+      } else if (v < lo || v > hi) {
+        issues.push(`"${key}":${v} is outside ${lo}–${hi} ${unit}, treated as a sensor error and ignored.`);
+      }
+    }
+    if (!finger && (typeof o.hr === "number" || typeof o.spo2 === "number")) {
+      issues.push('"finger":false, so hr/spo2 on this line are ignored.');
+    }
+  } else if (type === "ecg") {
+    if (!Array.isArray(o.s) || !o.s.length) {
+      issues.push('"s" must be a non-empty array of ADC samples: line ignored.');
+    } else {
+      const max = 2 ** adcBits - 1;
+      const bad = o.s.filter((v) => typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > max).length;
+      if (bad) issues.push(`${bad} of ${o.s.length} ECG samples aren't numbers in 0–${max} (raw ${adcBits}-bit ADC), ignored.`);
+    }
+  } else if (type === "hello" && o.ecg_hz !== undefined && inRange(o.ecg_hz, 125, 1000) === null) {
+    issues.push(`"ecg_hz":${JSON.stringify(o.ecg_hz)} must be 125–1000; 250 is assumed.`);
+  }
+  return issues;
+}
+
+// ---------------------------------------------------------------------------
 // Analysis response (FastAPI vitals/analysis.py)
 // ---------------------------------------------------------------------------
 

@@ -5,6 +5,7 @@ import { AlertIcon } from "@/components/report/icons";
 import { LiveEcgCanvas } from "@/components/vitals/Charts";
 import { connectSerial, isWebSerialSupported, SerialError } from "@/lib/serial";
 import {
+  checkDeviceLine,
   MAX_RECORDING_S,
   MIN_RECORDING_S,
   formatDuration,
@@ -18,6 +19,10 @@ type Source = { kind: "usb" } | { kind: "demo"; scenario: string };
 
 const ECG_WINDOW_S = 6;
 const STALE_MS = 3000;
+const LOG_LINES = 40;
+
+type LogEntry = { id: number; line: string; issues: string[] };
+type RawVitals = { hr?: unknown; spo2?: unknown; temp_c?: unknown };
 
 export function LiveMonitor({
   source,
@@ -39,6 +44,9 @@ export function LiveMonitor({
   const [elapsed, setElapsed] = useState(0);
   const [counts, setCounts] = useState({ valid: 0, invalid: 0 });
   const [demoDone, setDemoDone] = useState(false);
+  const [rawVitals, setRawVitals] = useState<RawVitals | null>(null);
+  const [showLog, setShowLog] = useState(false);
+  const [log, setLog] = useState<{ entries: LogEntry[]; problemLines: number; onlyProblems: boolean }>({ entries: [], problemLines: 0, onlyProblems: false });
 
   const stopRef = useRef<(() => Promise<void>) | null>(null);
   const helloRef = useRef<string | null>(null);
@@ -52,12 +60,25 @@ export function LiveMonitor({
   const ecgBuf = useRef<Float32Array>(new Float32Array(250 * ECG_WINDOW_S));
   const demoLinesRef = useRef<string[]>([]);
   const phaseRef = useRef<Phase>("idle");
+  const bitsRef = useRef(12);
+  const logRef = useRef<{ all: LogEntry[]; problems: LogEntry[]; problemLines: number; seq: number }>({ all: [], problems: [], problemLines: 0, seq: 0 });
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
 
   const handleLine = useCallback((line: string) => {
     lastDataRef.current = Date.now();
+    if (line.trim()) {
+      const lg = logRef.current;
+      const entry = { id: ++lg.seq, line: line.length > 400 ? `${line.slice(0, 400)}…` : line, issues: checkDeviceLine(line, bitsRef.current) };
+      lg.all.push(entry);
+      if (lg.all.length > LOG_LINES) lg.all.shift();
+      if (entry.issues.length) {
+        lg.problemLines += 1;
+        lg.problems.push(entry);
+        if (lg.problems.length > LOG_LINES) lg.problems.shift();
+      }
+    }
     const msg = parseDeviceLine(line);
     if (!msg) {
       countsRef.current.invalid += 1;
@@ -70,6 +91,7 @@ export function LiveMonitor({
     switch (msg.t) {
       case "hello":
         helloRef.current = line;
+        if (msg.adc_bits) bitsRef.current = msg.adc_bits;
         if (msg.ecg_hz && msg.ecg_hz !== hzRef.current) {
           hzRef.current = msg.ecg_hz;
           ecgBuf.current = new Float32Array(msg.ecg_hz * ECG_WINDOW_S);
@@ -77,6 +99,11 @@ export function LiveMonitor({
         break;
       case "vitals":
         setLatest(msg);
+        try {
+          setRawVitals(JSON.parse(line) as RawVitals);
+        } catch {
+          setRawVitals(null);
+        }
         break;
       case "ecg": {
         if (msg.lo !== leadsOffRef.current) {
@@ -84,7 +111,8 @@ export function LiveMonitor({
           setLeadsOff(msg.lo);
         }
         const buf = ecgBuf.current;
-        const samples = msg.s.filter((v) => Number.isFinite(v));
+        const maxAdc = 2 ** bitsRef.current - 1;
+        const samples = msg.s.filter((v) => Number.isFinite(v) && v >= 0 && v <= maxAdc);
         const n = Math.min(samples.length, buf.length);
         buf.copyWithin(0, n);
         for (let i = 0; i < n; i++) {
@@ -103,6 +131,8 @@ export function LiveMonitor({
     if (phase === "idle" || phase === "connecting") return;
     const id = setInterval(() => {
       setCounts({ ...countsRef.current });
+      const lg = logRef.current;
+      setLog((l) => ({ ...l, entries: [...(l.onlyProblems ? lg.problems : lg.all)], problemLines: lg.problemLines }));
       setStale(Date.now() - lastDataRef.current > STALE_MS);
       if (phaseRef.current === "recording") {
         const s = (Date.now() - recStartRef.current) / 1000;
@@ -125,6 +155,10 @@ export function LiveMonitor({
     ecgBuf.current = new Float32Array(hzRef.current * ECG_WINDOW_S);
     lastDataRef.current = Date.now();
     leadsOffRef.current = false;
+    logRef.current = { all: [], problems: [], problemLines: 0, seq: 0 };
+    bitsRef.current = 12;
+    setLog({ entries: [], problemLines: 0, onlyProblems: false });
+    setRawVitals(null);
     setLatest(null);
     setLeadsOff(false);
     setStale(false);
@@ -228,6 +262,13 @@ export function LiveMonitor({
   const usbUnsupported = source.kind === "usb" && typeof window !== "undefined" && !isWebSerialSupported();
   const finger = latest?.finger ?? false;
   const canStop = elapsed >= MIN_RECORDING_S;
+  // Why a tile shows "--": no finger, the device sent nothing, or it sent a value outside the accepted range.
+  const hint = (key: keyof RawVitals, fallback: string) => {
+    const raw = rawVitals?.[key];
+    if (key !== "temp_c" && !finger) return "Place finger on sensor";
+    if (typeof raw === "number") return `Device sent ${raw}: out of range, ignored`;
+    return fallback;
+  };
 
   if (!connected) {
     return (
@@ -302,9 +343,9 @@ export function LiveMonitor({
       ) : null}
 
       <div className="grid grid-cols-3 gap-3 p-5">
-        {tile("Heart rate", latest?.hr, "bpm", finger && latest?.hr != null, "Place finger on sensor")}
-        {tile("Blood oxygen", latest?.spo2, "%", finger && latest?.spo2 != null, "Place finger on sensor")}
-        {tile("Temperature", latest?.temp_c, "°C", latest?.temp_c != null, "No body sensor")}
+        {tile("Heart rate", latest?.hr, "bpm", finger && latest?.hr != null, hint("hr", "No reading yet"))}
+        {tile("Blood oxygen", latest?.spo2, "%", finger && latest?.spo2 != null, hint("spo2", "No reading yet"))}
+        {tile("Temperature", latest?.temp_c, "°C", latest?.temp_c != null, hint("temp_c", "No body sensor"))}
       </div>
 
       <div className="relative mx-5 rounded-xl bg-zinc-50 dark:bg-zinc-900">
@@ -359,10 +400,57 @@ export function LiveMonitor({
             </button>
           ) : null}
         </div>
-        <p className="text-[11px] text-zinc-400">
-          {counts.valid} readings received{counts.invalid ? ` · ${counts.invalid} unreadable lines ignored` : ""}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-zinc-400">
+            {counts.valid} readings received{counts.invalid ? ` · ${counts.invalid} unreadable lines ignored` : ""}
+            {log.problemLines ? ` · ${log.problemLines} lines with ignored values` : ""}
+          </p>
+          <button
+            onClick={() => setShowLog((v) => !v)}
+            aria-expanded={showLog}
+            className="rounded-lg px-2 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            {showLog ? "Hide device data" : "Show device data"}
+          </button>
+        </div>
       </div>
+
+      {showLog ? <DeviceLog entries={log.entries} onlyProblems={log.onlyProblems} setOnlyProblems={(onlyProblems) => {
+        const lg = logRef.current;
+        setLog((l) => ({ ...l, onlyProblems, entries: [...(onlyProblems ? lg.problems : lg.all)] }));
+      }} /> : null}
     </div>
+  );
+}
+
+/** Raw lines from the device with plain-language notes, so firmware problems can be spotted without a serial monitor. */
+function DeviceLog({ entries, onlyProblems, setOnlyProblems }: { entries: LogEntry[]; onlyProblems: boolean; setOnlyProblems: (v: boolean) => void }) {
+  return (
+    <section className="border-t border-zinc-100 px-5 pb-5 pt-4 dark:border-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 className="text-sm font-semibold">Device data</h4>
+          <p className="text-xs text-zinc-500">The last {LOG_LINES} lines exactly as the device sent them. For checking the firmware against the protocol.</p>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+          <input type="checkbox" checked={onlyProblems} onChange={(e) => setOnlyProblems(e.target.checked)} />
+          Only lines with problems
+        </label>
+      </div>
+      <ol className="mt-3 max-h-80 overflow-auto rounded-xl bg-zinc-950 p-3 font-mono text-[11px] leading-5 text-zinc-200">
+        {entries.length === 0 ? (
+          <li className="text-zinc-500">{onlyProblems ? "No problems found so far." : "Waiting for data…"}</li>
+        ) : (
+          [...entries].reverse().map((e) => (
+            <li key={e.id} className="border-b border-zinc-800/70 py-1 last:border-0">
+              <div className="break-all">{e.line}</div>
+              {e.issues.map((issue) => (
+                <div key={issue} className="font-sans text-amber-300">↳ {issue}</div>
+              ))}
+            </li>
+          ))
+        )}
+      </ol>
+    </section>
   );
 }

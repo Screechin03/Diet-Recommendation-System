@@ -100,6 +100,24 @@ Send raw readings: no filtering, no averaging. The backend filters the signal it
 - **ADC:** use one of ADC1's pins for the ECG (ADC2 cannot be used while Wi-Fi is on), and sample on a timer, not with `delay()`,
   so `ecg_hz` is accurate. Gaps or jitter make heart-rate variability wrong.
 
+## Troubleshooting
+
+On the website, after connecting, click **Show device data** under the live view. It shows the last 40 lines exactly
+as the device sent them, with a note on every value the app ignores and why. Tick **Only lines with problems** to filter.
+
+- **"BP 300" / blood pressure.** The app has no blood-pressure reading: neither the MAX30102 nor the AD8232 can
+  measure blood pressure (that needs a cuff). A `bp` field is ignored. If firmware calculates a "BP" from heart rate,
+  remove it: it isn't a real measurement and would mislead patients.
+- **Heart rate around 300.** This usually comes from beat-detection code like the SparkFun `HeartRate` example, which
+  computes `60 / (delta / 1000.0)` between two detected beats. Noise or a double-detected beat gives a 200 ms gap, which
+  shows as 300 bpm. The app treats any `hr` outside 30–220 as a sensor error and shows "--" with "Device sent 300: out
+  of range". Fix it in firmware: average the last 4–8 beats, discard intervals under 300 ms, and send `"hr":null` until
+  the value is stable.
+- **`-999` or `0` values.** Maxim's `maxim_heart_rate_and_oxygen_saturation()` returns `-999` when invalid. Send
+  `null` instead (check its `valid` flags).
+- **Lines shown as "Not a JSON line".** These are debug prints such as `BPM: 82`. Remove them, or turn them off in the
+  build that talks to the app.
+
 ## Testing without the device
 
 Two ready-made sessions are in [`Docs/sample-sessions/`](sample-sessions/) (normal and irregular heartbeat, 2 minutes each).
