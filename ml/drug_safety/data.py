@@ -16,6 +16,7 @@ Pregnancy labels -> {drug name: {tier, category, source, evidence}}
 from __future__ import annotations
 
 import glob
+import gzip
 import json
 import re
 from pathlib import Path
@@ -38,11 +39,12 @@ def load_pairs(path: Path, max_rows: Optional[int] = None) -> Tuple[pd.DataFrame
     """Returns (pairs[a, b, relation], smiles_by_id). Self-pairs and duplicates are removed; pairs are unordered."""
     path = Path(path)
     smiles: Dict[str, str] = {}
-    if path.suffix in (".tsv", ".txt") and _headerless(path):
+    ext = path.suffixes[-2] if path.suffix == ".gz" and len(path.suffixes) > 1 else path.suffix
+    if ext in (".tsv", ".txt", ".tab") and _headerless(path):
         df = pd.read_csv(path, sep="\t", header=None, usecols=[0, 1], names=["a", "b"], nrows=max_rows, comment="#")
         df["relation"] = "interacts"
     else:
-        sep = "\t" if path.suffix == ".tsv" else ","
+        sep = "\t" if ext in (".tsv", ".tab") else ","
         head = pd.read_csv(path, sep=sep, nrows=0).columns
         cols = {c.lower().strip(): c for c in head}
         if {"drug1_id", "drug2_id"} <= cols.keys():
@@ -74,7 +76,9 @@ def load_pairs(path: Path, max_rows: Optional[int] = None) -> Tuple[pd.DataFrame
 
 
 def _headerless(path: Path) -> bool:
-    first = path.open().readline()
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt") as f:
+        first = f.readline()
     return bool(re.match(r"^(DB\d+|CID\d+)\s", first))
 
 

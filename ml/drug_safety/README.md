@@ -28,7 +28,19 @@ pip install -r requirements.txt
 
 ## Data
 
-Put the files in `data/real/` (git-ignored). The loaders read the published formats as they are:
+The easiest way is to let the script fetch everything into `data/real/` (git-ignored, all free sources):
+
+```bash
+python download.py          # BIOSNAP interactions + drug names/structures (PubChem) + openFDA pregnancy labels
+python download.py --biosnap path/to/ChCh-Miner_durgbank-chem-chem.tsv.gz   # reuse a file you already have
+python download.py --tdc drugbank        # also TDC's DrugBank DDI (191k typed pairs)
+```
+
+The openFDA labels are about 1.8 GB to download in 14 files, and only their pregnancy sections are kept. Around 9 files
+(roughly 75,000 labels) are plenty; use `--fda-files 9` to stop there.
+Drug names, synonyms and structures come from PubChem, looked up by DrugBank id.
+
+You can also add files by hand. The loaders read the published formats as they are:
 
 | What | File | Formats understood |
 |---|---|---|

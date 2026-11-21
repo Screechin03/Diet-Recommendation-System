@@ -1,0 +1,401 @@
+{
+ "name": "biosnap",
+ "created_at": "2026-11-21T16:43:59.449370+00:00",
+ "inputs": {
+  "pairs": "data/real/ChCh-Miner_durgbank-chem-chem.tsv.gz",
+  "drugs": "data/real/drugs.csv",
+  "labels": [
+   "data/real/openfda_drug-label-0001-of-0014.json",
+   "data/real/openfda_drug-label-0002-of-0014.json",
+   "data/real/openfda_drug-label-0003-of-0014.json",
+   "data/real/openfda_drug-label-0004-of-0014.json",
+   "data/real/openfda_drug-label-0005-of-0014.json",
+   "data/real/openfda_drug-label-0006-of-0014.json",
+   "data/real/openfda_drug-label-0007-of-0014.json",
+   "data/real/openfda_drug-label-0008-of-0014.json",
+   "data/real/openfda_drug-label-0009-of-0014.json"
+  ]
+ },
+ "graph": {
+  "drugs": 1514,
+  "pairs": 48514,
+  "relations": 2,
+  "labelled": 368
+ },
+ "ddi": [
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "rgcn",
+   "seed": 0,
+   "auroc": 0.9482597909137356,
+   "auprc": 0.9422439083323904,
+   "precision_at_threshold": 0.8893207855973814,
+   "recall_at_threshold": 0.8961038961038961,
+   "n_test_pairs": 9702,
+   "seconds": 43.7
+  },
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "sage",
+   "seed": 0,
+   "auroc": 0.9519666264961786,
+   "auprc": 0.9460951373952277,
+   "precision_at_threshold": 0.8898785425101214,
+   "recall_at_threshold": 0.9062049062049062,
+   "n_test_pairs": 9702,
+   "seconds": 30.2
+  },
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "fp_mlp",
+   "seed": 0,
+   "auroc": 0.9575771939054915,
+   "auprc": 0.960969883092674,
+   "precision_at_threshold": 0.902157658619953,
+   "recall_at_threshold": 0.8705421562564419,
+   "n_test_pairs": 9702,
+   "seconds": 90.0
+  },
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "rgcn",
+   "seed": 1,
+   "auroc": 0.9387746603048308,
+   "auprc": 0.9346401303103506,
+   "precision_at_threshold": 0.9045863102097258,
+   "recall_at_threshold": 0.8091115233972377,
+   "n_test_pairs": 9702,
+   "seconds": 25.6
+  },
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "sage",
+   "seed": 1,
+   "auroc": 0.9570057216492416,
+   "auprc": 0.9551796215485964,
+   "precision_at_threshold": 0.9069427017984107,
+   "recall_at_threshold": 0.8940424654710369,
+   "n_test_pairs": 9702,
+   "seconds": 25.9
+  },
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "fp_mlp",
+   "seed": 1,
+   "auroc": 0.9583408283823515,
+   "auprc": 0.961285505023779,
+   "precision_at_threshold": 0.8997890295358649,
+   "recall_at_threshold": 0.8792001649144506,
+   "n_test_pairs": 9702,
+   "seconds": 100.8
+  },
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "rgcn",
+   "seed": 2,
+   "auroc": 0.9535939498392012,
+   "auprc": 0.95221099505304,
+   "precision_at_threshold": 0.897571924097123,
+   "recall_at_threshold": 0.906823335394764,
+   "n_test_pairs": 9702,
+   "seconds": 28.9
+  },
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "sage",
+   "seed": 2,
+   "auroc": 0.9538037262217844,
+   "auprc": 0.9504552739267282,
+   "precision_at_threshold": 0.8956360642239605,
+   "recall_at_threshold": 0.8969284683570398,
+   "n_test_pairs": 9702,
+   "seconds": 29.1
+  },
+  {
+   "task": "ddi",
+   "split": "random",
+   "model": "fp_mlp",
+   "seed": 2,
+   "auroc": 0.9525822510185086,
+   "auprc": 0.9555677635408137,
+   "precision_at_threshold": 0.8993464052287582,
+   "recall_at_threshold": 0.8509585652442795,
+   "n_test_pairs": 9702,
+   "seconds": 82.8
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "rgcn",
+   "seed": 0,
+   "auroc": 0.6712782625131609,
+   "auprc": 0.682651851122255,
+   "precision_at_threshold": 0.8481724461105904,
+   "recall_at_threshold": 0.09490352348993289,
+   "n_test_pairs": 19072,
+   "seconds": 3.9
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "sage",
+   "seed": 0,
+   "auroc": 0.4208814748895742,
+   "auprc": 0.47543731730567945,
+   "precision_at_threshold": 0.8591549295774648,
+   "recall_at_threshold": 0.019190436241610737,
+   "n_test_pairs": 19072,
+   "seconds": 4.4
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "fp_mlp",
+   "seed": 0,
+   "auroc": 0.726385192609919,
+   "auprc": 0.7422135863829334,
+   "precision_at_threshold": 0.8864365971107544,
+   "recall_at_threshold": 0.2316484899328859,
+   "n_test_pairs": 19072,
+   "seconds": 47.0
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "rgcn",
+   "seed": 1,
+   "auroc": 0.5911852112518582,
+   "auprc": 0.5967888452178989,
+   "precision_at_threshold": 0.9333333333333333,
+   "recall_at_threshold": 0.001767453604342886,
+   "n_test_pairs": 15842,
+   "seconds": 3.7
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "sage",
+   "seed": 1,
+   "auroc": 0.5743292704511463,
+   "auprc": 0.5653728984517099,
+   "precision_at_threshold": 0.5000318248361021,
+   "recall_at_threshold": 0.991793965408408,
+   "n_test_pairs": 15842,
+   "seconds": 3.3
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "fp_mlp",
+   "seed": 1,
+   "auroc": 0.7932910222317371,
+   "auprc": 0.7938140233714975,
+   "precision_at_threshold": 0.0,
+   "recall_at_threshold": 0.0,
+   "n_test_pairs": 15842,
+   "seconds": 37.1
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "rgcn",
+   "seed": 2,
+   "auroc": 0.68505013383345,
+   "auprc": 0.6924227668322295,
+   "precision_at_threshold": 0.9290322580645162,
+   "recall_at_threshold": 0.015262321144674086,
+   "n_test_pairs": 18870,
+   "seconds": 3.6
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "sage",
+   "seed": 2,
+   "auroc": 0.6308947084183221,
+   "auprc": 0.6648155706118751,
+   "precision_at_threshold": 0.9255813953488372,
+   "recall_at_threshold": 0.021091679915209327,
+   "n_test_pairs": 18870,
+   "seconds": 3.8
+  },
+  {
+   "task": "ddi",
+   "split": "cold",
+   "model": "fp_mlp",
+   "seed": 2,
+   "auroc": 0.7740925288891247,
+   "auprc": 0.7894946805384961,
+   "precision_at_threshold": 0.9388888888888889,
+   "recall_at_threshold": 0.16120826709062003,
+   "n_test_pairs": 18870,
+   "seconds": 53.9
+  }
+ ],
+ "risk": [
+  {
+   "task": "risk",
+   "model": "rgcn",
+   "seed": 0,
+   "macro_f1": 0.48888888888888893,
+   "accuracy": 0.4909090909090909,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.6694827512164974
+  },
+  {
+   "task": "risk",
+   "model": "sage",
+   "seed": 0,
+   "macro_f1": 0.46061158783457,
+   "accuracy": 0.4727272727272727,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.684091176536997
+  },
+  {
+   "task": "risk",
+   "model": "fp_mlp",
+   "seed": 0,
+   "macro_f1": 0.47184532349525177,
+   "accuracy": 0.4727272727272727,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.6506125408911787
+  },
+  {
+   "task": "risk",
+   "model": "rgcn",
+   "seed": 1,
+   "macro_f1": 0.5107407407407408,
+   "accuracy": 0.5272727272727272,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.6868809580512366
+  },
+  {
+   "task": "risk",
+   "model": "sage",
+   "seed": 1,
+   "macro_f1": 0.5059391872691106,
+   "accuracy": 0.509090909090909,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.7100689884590814
+  },
+  {
+   "task": "risk",
+   "model": "fp_mlp",
+   "seed": 1,
+   "macro_f1": 0.5649212430821625,
+   "accuracy": 0.5818181818181818,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.6794037582644394
+  },
+  {
+   "task": "risk",
+   "model": "rgcn",
+   "seed": 2,
+   "macro_f1": 0.5600771987868761,
+   "accuracy": 0.5636363636363636,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.772379560011139
+  },
+  {
+   "task": "risk",
+   "model": "sage",
+   "seed": 2,
+   "macro_f1": 0.610042735042735,
+   "accuracy": 0.6181818181818182,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.7624946352810129
+  },
+  {
+   "task": "risk",
+   "model": "fp_mlp",
+   "seed": 2,
+   "macro_f1": 0.5347521434477956,
+   "accuracy": 0.5454545454545454,
+   "n_test_drugs": 55,
+   "macro_auroc": 0.7450308778482153
+  }
+ ],
+ "summary": {
+  "ddi": [
+   {
+    "split": "cold",
+    "model": "fp_mlp",
+    "auroc mean": 0.7645895812435937,
+    "auroc std": 0.03445035587350613,
+    "auprc mean": 0.7751740967643089,
+    "auprc std": 0.02862622249053875
+   },
+   {
+    "split": "cold",
+    "model": "rgcn",
+    "auroc mean": 0.649171202532823,
+    "auroc std": 0.05068725183458609,
+    "auprc mean": 0.6572878210574612,
+    "auprc std": 0.05262092983480822
+   },
+   {
+    "split": "cold",
+    "model": "sage",
+    "auroc mean": 0.5420351512530143,
+    "auroc std": 0.1086672543381283,
+    "auprc mean": 0.5685419287897547,
+    "auprc std": 0.09472889090076475
+   },
+   {
+    "split": "random",
+    "model": "fp_mlp",
+    "auroc mean": 0.9561667577687838,
+    "auroc std": 0.0031276670036368753,
+    "auprc mean": 0.9592743838857555,
+    "auprc std": 0.0032139041813659002
+   },
+   {
+    "split": "random",
+    "model": "rgcn",
+    "auroc mean": 0.9468761336859225,
+    "auroc std": 0.007505912074420711,
+    "auprc mean": 0.9430316778985937,
+    "auprc std": 0.00881188161623542
+   },
+   {
+    "split": "random",
+    "model": "sage",
+    "auroc mean": 0.9542586914557348,
+    "auroc std": 0.0025501696048465905,
+    "auprc mean": 0.9505766776235175,
+    "auprc std": 0.004543458729469998
+   }
+  ],
+  "risk": [
+   {
+    "model": "fp_mlp",
+    "macro_auroc mean": 0.6916823923346112,
+    "macro_auroc std": 0.04839193351587651,
+    "macro_f1 mean": 0.5238395700084033,
+    "macro_f1 std": 0.04748783945432625
+   },
+   {
+    "model": "rgcn",
+    "macro_auroc mean": 0.7095810897596243,
+    "macro_auroc std": 0.05507640420101769,
+    "macro_f1 mean": 0.5199022761388353,
+    "macro_f1 std": 0.036467714003908545
+   },
+   {
+    "model": "sage",
+    "macro_auroc mean": 0.7188849334256971,
+    "macro_auroc std": 0.03993828050876686,
+    "macro_f1 mean": 0.5255311700488052,
+    "macro_f1 std": 0.07661789138913282
+   }
+  ]
+ }
+}

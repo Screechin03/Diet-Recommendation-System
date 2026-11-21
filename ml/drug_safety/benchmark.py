@@ -22,7 +22,7 @@ from core import attach_risk_labels, build_graph, make_split, train_ddi, train_r
 from data import find_files, load_curated_labels, load_drugs, load_openfda_labels, load_pairs
 
 HERE = Path(__file__).parent
-PAIR_PATTERNS = ["*pairs*.csv", "*TWOSIDES*.csv", "*twosides*.csv", "*ChCh*", "*biosnap*", "*BIOSNAP*", "*combo*.csv", "*ddi*.csv", "*DDI*.csv"]
+PAIR_PATTERNS = ["*pairs*.csv", "*ChCh*", "*biosnap*", "*BIOSNAP*", "*TWOSIDES*.csv", "*twosides*.csv", "*combo*.csv", "*ddi*.csv", "*ddi*.tsv", "*DDI*.csv"]
 DRUG_PATTERNS = ["drugs.csv", "*vocabulary*.csv"]
 LABEL_PATTERNS = ["*openfda*.json", "drug-label-*.json"]
 
