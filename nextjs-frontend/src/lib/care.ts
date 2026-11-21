@@ -3,7 +3,7 @@
 // so these helpers never decide who may see what; they only call the API.
 
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { EMAIL_VERIFIED_PATH, getSupabaseBrowserClient } from "@/lib/supabase";
 import type { PregnancyInfo } from "@/lib/types";
 
 export type Role = "patient" | "doctor";
@@ -261,6 +261,7 @@ export async function signUpDoctor(input: DoctorSignup): Promise<boolean> {
     email: input.email.trim(),
     password: input.password,
     options: {
+      emailRedirectTo: `${window.location.origin}${EMAIL_VERIFIED_PATH}`,
       data: {
         full_name: input.fullName.trim(),
         account_type: "doctor",

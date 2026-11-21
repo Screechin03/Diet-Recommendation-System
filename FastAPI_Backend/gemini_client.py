@@ -4,6 +4,8 @@
 - Tries the configured model first, then current defaults, then models discovered via ListModels,
   so a retired model name (e.g. gemini-1.5-flash) no longer silently disables every AI feature.
 - Remembers the first model that works.
+- Falls back to the Interactions API (`POST /v1beta/interactions`). Newer keys (`AQ.` format, new accounts)
+  get 404 on every generateContent model, while Interactions works.
 """
 
 import os
@@ -15,8 +17,14 @@ import requests
 
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
+# Interactions API models, fastest first (gemini-3.1-flash-lite answers in ~6 s; newer flash models were
+# often overloaded when tested). Override with GEMINI_INTERACTIONS_MODEL.
+INTERACTIONS_MODELS = ["gemini-3.1-flash-lite", "gemini-3.5-flash"]
 
 _working_model: Optional[str] = None
+# None = not known yet; True = generateContent is closed for this key, so go straight to Interactions.
+_use_interactions: Optional[bool] = None
+_working_interactions_model: Optional[str] = None
 _lock = threading.Lock()
 
 
@@ -71,6 +79,77 @@ def _text_from_response(data: Dict[str, Any]) -> Optional[str]:
     return text.strip() or None
 
 
+def _interactions_input(parts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """generateContent parts -> Interactions input items (text, image, document)."""
+    out: List[Dict[str, Any]] = []
+    for p in parts:
+        if p.get("text"):
+            out.append({"type": "text", "text": p["text"]})
+            continue
+        inline = p.get("inlineData") or p.get("inline_data")
+        if inline:
+            mime = inline.get("mimeType") or inline.get("mime_type") or "application/octet-stream"
+            kind = "image" if mime.startswith("image/") else "document"
+            out.append({"type": kind, "mime_type": mime, "data": inline.get("data", "")})
+    return out
+
+
+def _text_from_interaction(data: Dict[str, Any]) -> Optional[str]:
+    texts = [
+        c.get("text", "")
+        for step in data.get("steps") or []
+        if step.get("type") == "model_output"
+        for c in step.get("content") or []
+        if c.get("type") == "text" and c.get("text")
+    ]
+    text = "\n".join(texts)
+    return text.strip() or None
+
+
+def _generate_with_interactions(
+    key: str,
+    parts: List[Dict[str, Any]],
+    *,
+    temperature: float,
+    max_output_tokens: int,
+    json_mode: bool,
+    timeout_s: int,
+) -> Optional[str]:
+    global _working_interactions_model
+    body: Dict[str, Any] = {
+        "input": _interactions_input(parts),
+        "store": False,  # don't keep patient data on Google's side
+        # Hidden "thinking" tokens count against max_output_tokens and cut JSON answers off mid-way.
+        "generation_config": {"temperature": temperature, "max_output_tokens": max_output_tokens, "thinking_level": "minimal"},
+    }
+    if json_mode:
+        body["response_format"] = {"type": "text", "mime_type": "application/json"}
+    headers = {"x-goog-api-key": key, "content-type": "application/json"}
+    models = [_working_interactions_model, _env("GEMINI_INTERACTIONS_MODEL"), *INTERACTIONS_MODELS]
+    seen = set()
+    for model in models:
+        if not model or model in seen:
+            continue
+        seen.add(model)
+        try:
+            res = requests.post(f"{API_ROOT}/interactions", json={**body, "model": model}, headers=headers, timeout=timeout_s)
+        except requests.exceptions.RequestException:
+            continue
+        if res.status_code in (401, 403):
+            return None
+        if res.status_code >= 400:
+            continue
+        try:
+            text = _text_from_interaction(res.json())
+        except ValueError:
+            continue
+        if text:
+            with _lock:
+                _working_interactions_model = model
+            return text
+    return None
+
+
 def generate(
     parts: List[Dict[str, Any]],
     *,
@@ -80,11 +159,16 @@ def generate(
     timeout_s: int = 30,
     preferred_env: Optional[str] = None,
 ) -> Optional[str]:
-    """Call generateContent; returns the response text or None if Gemini is unavailable."""
-    global _working_model
+    """Call Gemini; returns the response text or None if Gemini is unavailable."""
+    global _working_model, _use_interactions
     key = _env("GEMINI_API_KEY")
     if not key:
         return None
+    via_interactions = dict(
+        temperature=temperature, max_output_tokens=max_output_tokens, json_mode=json_mode, timeout_s=timeout_s
+    )
+    if _use_interactions:
+        return _generate_with_interactions(key, parts, **via_interactions)
 
     config: Dict[str, Any] = {"temperature": temperature, "maxOutputTokens": max_output_tokens}
     if json_mode:
@@ -109,6 +193,14 @@ def generate(
                 # Bad request / bad key: another model name will not help.
                 if res.status_code != 400 or "model" not in res.text.lower():
                     return None
+                continue
+            if res.status_code == 404 and _use_interactions is None:
+                # Either a retired model or generateContent closed for this (new) key: try Interactions once.
+                text = _generate_with_interactions(key, parts, **via_interactions)
+                if text:
+                    with _lock:
+                        _use_interactions = True
+                    return text
                 continue
             if res.status_code >= 400:
                 continue  # 404 retired model, 429 quota, 5xx: try the next model

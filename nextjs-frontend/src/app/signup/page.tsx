@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { EMAIL_VERIFIED_PATH, getSupabaseBrowserClient } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 
 function getSignupErrorMessage(error: unknown): string {
@@ -61,6 +61,8 @@ export default function SignupPage() {
         email,
         password,
         options: {
+          // Confirmation link opens a "you're verified, please log in" page instead of logging in.
+          emailRedirectTo: `${window.location.origin}${EMAIL_VERIFIED_PATH}`,
           data: {
             full_name: fullName.trim() || null,
           },

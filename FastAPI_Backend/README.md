@@ -11,11 +11,25 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8080
 curl localhost:8080/health         # {"ok":true,"recipes_loaded":338368,"risk_model_loaded":true}
 ```
 
-Needs about **600 MB RAM**: the recipe dataset is held in memory. Host it on an instance with 1 GB or more.
+Loading the CSV directly needs about **800 MB RAM**. For small hosts (Render free, 512 MB), convert it once into
+a SQLite store and point `DATASET_PATH` at that: the API then peaks at ~420 MB with identical results.
+The Docker image does this automatically.
+
+```bash
+python recipe_store.py ../Data/dataset1.csv recipes.sqlite
+DATASET_PATH=recipes.sqlite uvicorn main:app --host 0.0.0.0 --port 8080
+```
+
+## Deploy on Render (free)
+
+Render → **New → Blueprint** → this repo. It reads `render.yaml` (Docker, free plan, `/health` check) and asks for
+`GEMINI_API_KEY`. The Dockerfile downloads the dataset itself, so Git LFS and volumes aren't needed.
 
 ## Environment variables
 
-- `DATASET_PATH`: path to the recipes CSV (plain or gzipped). Defaults to `../Data/dataset1.csv` or `/app/Data/`.
+- `DATASET_PATH`: path to the recipes CSV (plain or gzipped) or a `recipe_store.py` SQLite store.
+  Defaults to `../Data/dataset1.csv` or `/app/Data/`; the Docker image sets `/opt/data/recipes.sqlite`.
+- `PORT`: port to listen on in Docker (default 8080; Render sets it).
 - `GEMINI_API_KEY`: enables the prescription reader and the optional AI refinement.
 - `GEMINI_MODEL` / `GEMINI_PRESCRIPTION_MODEL`: optional. If unset or retired, the client falls back to
   `gemini-flash-latest`, `gemini-2.5-flash`, `gemini-2.0-flash`, then models discovered from the API.

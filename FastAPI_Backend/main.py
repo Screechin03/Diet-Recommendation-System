@@ -3,6 +3,7 @@ import logging
 import mimetypes
 import os
 import re
+import sqlite3
 import threading
 from functools import lru_cache
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
@@ -37,6 +38,7 @@ from vitals.protocol import ProtocolError, parse_bytes as parse_vitals_bytes, pa
 from vitals.report_pdf import build_report as build_vitals_report
 from vitals.simulate import SCENARIOS as VITALS_SCENARIOS, generate as simulate_vitals
 from pregnancy_ml_predictor import get_pregnancy_predictor
+import recipe_store
 
 logger = logging.getLogger("pregnancy_api")
 
@@ -102,12 +104,25 @@ def _dataset_candidates() -> List[str]:
 _dataset_lock = threading.Lock()
 
 
+_store_path: Optional[str] = None  # set when the dataset comes from the low-memory SQLite store
+
+
 @lru_cache(maxsize=1)
 def _load_dataset() -> pd.DataFrame:
+    global _store_path
     problems = []
     for path in _dataset_candidates():
         if not os.path.exists(path):
             continue
+        if recipe_store.is_store(path):
+            try:
+                df = recipe_store.load(path)
+            except (sqlite3.Error, ValueError) as e:
+                problems.append(f"{path}: {e}")
+                continue
+            _store_path = path
+            logger.info("Loaded %s recipes from store %s", len(df), path)
+            return df
         try:
             df = _read_csv_auto(path)
         except (OSError, ValueError, UnicodeDecodeError, gzip.BadGzipFile) as e:
@@ -125,6 +140,7 @@ def _load_dataset() -> pd.DataFrame:
             compile_terms(PREGNANCY_UNSAFE + NOT_HUMAN_FOOD), regex=True, na=False
         )
         df = df[~unsafe].reset_index(drop=True)
+        _store_path = None
         logger.info("Loaded %s recipes from %s (%s pregnancy-unsafe excluded)", len(df), path, int(unsafe.sum()))
         return df
 
@@ -138,6 +154,13 @@ def _load_dataset() -> pd.DataFrame:
 def get_dataset() -> pd.DataFrame:
     with _dataset_lock:  # avoid two concurrent first requests loading ~400 MB twice
         return _load_dataset()
+
+
+def with_recipe_details(selected: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
+    """Store-backed datasets keep recipe text on disk; fetch it for just the selected rows."""
+    if selected is None or recipe_store.ROW_COLUMN not in selected.columns or not _store_path:
+        return selected
+    return recipe_store.hydrate(selected, _store_path)
 
 
 _group_masks: Dict[str, np.ndarray] = {}
@@ -497,7 +520,9 @@ def get_pregnancy_recommendations(prediction_input: PredictionIn):
     ingredients = _search_ingredients(info, prediction_input.ingredients, restrictions)
     params_dict = {"n_neighbors": prediction_input.params.n_neighbors if prediction_input.params else 5}
 
-    output = output_recommended_recipes(recommend(candidates, nutrition_target, ingredients, params_dict))
+    output = output_recommended_recipes(
+        with_recipe_details(recommend(candidates, nutrition_target, ingredients, params_dict))
+    )
     if not output:
         return {"output": None, "refined": None}
 

@@ -3,13 +3,11 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Body, Button, ErrorBox, Field, Screen } from "@/components/ui";
 import { useTheme } from "@/components/theme";
-import { useAuth } from "@/lib/auth";
-import { careErrorMessage, getAccount } from "@/lib/care";
+import { careErrorMessage } from "@/lib/care";
 import { requireSupabase } from "@/lib/supabase";
 
 export default function DoctorLoginScreen() {
   const t = useTheme();
-  const { refreshAccount } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,11 +19,8 @@ export default function DoctorLoginScreen() {
     try {
       const { error: err } = await requireSupabase().auth.signInWithPassword({ email: email.trim(), password });
       if (err) throw err;
-      const account = await getAccount();
-      await refreshAccount();
-      // A patient who used this screen simply goes to the patient side.
-      if (router.canDismiss()) router.dismissAll();
-      router.replace(account.role === "doctor" ? "/inbox" : "/");
+      // No navigation needed: the root layout opens the app once the session exists, and the tab layout
+      // sends doctors to their inbox (a patient who used this screen lands in the patient app).
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
       setError(/Invalid login credentials/i.test(msg) ? "Wrong email or password." : careErrorMessage(e, "Login failed."));

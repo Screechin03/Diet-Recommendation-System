@@ -3,14 +3,12 @@ import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { Body, Button, Chips, ErrorBox, Field, InfoBox, Screen } from "@/components/ui";
 import { useTheme } from "@/components/theme";
-import { useAuth } from "@/lib/auth";
 import { careErrorMessage, signUpDoctor } from "@/lib/care";
 
 const SPECIALTIES = ["Obstetrics & Gynaecology", "General Practice", "Maternal-Fetal Medicine", "Nutrition & Dietetics", "Midwifery"].map((s) => ({ value: s, label: s }));
 
 export default function DoctorSignupScreen() {
   const t = useTheme();
-  const { refreshAccount } = useAuth();
   const [form, setForm] = useState({ fullName: "", specialty: SPECIALTIES[0].value, hospital: "", city: "", email: "", password: "", code: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,13 +19,8 @@ export default function DoctorSignupScreen() {
     setLoading(true);
     setError(null);
     try {
-      if (await signUpDoctor(form)) {
-        await refreshAccount();
-        if (router.canDismiss()) router.dismissAll();
-        router.replace("/profile");
-      } else {
-        setDone(true); // email confirmation is on in Supabase
-      }
+      // With a session the root layout opens the doctor's inbox by itself.
+      if (!(await signUpDoctor(form))) setDone(true); // email confirmation is on in Supabase
     } catch (e) {
       setError(careErrorMessage(e, "Sign-up failed."));
     } finally {

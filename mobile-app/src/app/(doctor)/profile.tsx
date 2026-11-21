@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { router } from "expo-router";
 import { Body, Button, Card, ErrorBox, Field, Screen, SectionLabel, ToggleRow } from "@/components/ui";
 import { Avatar } from "@/components/Care";
 import { useTheme } from "@/components/theme";
@@ -92,11 +91,7 @@ export default function DoctorProfileScreen() {
         <Button
           title="Log out"
           variant="danger"
-          onPress={() =>
-            signOut()
-              .catch(() => {})
-              .finally(() => router.replace("/"))
-          }
+          onPress={() => signOut().catch(() => {})}
         />
       </Card>
     </Screen>

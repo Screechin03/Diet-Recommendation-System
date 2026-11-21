@@ -5,6 +5,7 @@
 import { Platform } from "react-native";
 import { File as FsFile } from "expo-file-system";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { apiBaseUrl } from "./api";
 import { requireSupabase } from "./supabase";
 import type { PickedFile, PregnancyInfo } from "./types";
 
@@ -253,6 +254,14 @@ export async function checkDoctorCode(code: string): Promise<boolean> {
   return Boolean(check(await db().rpc("check_doctor_code", { p_code: code })));
 }
 
+function emailVerifiedUrl(): string | undefined {
+  try {
+    return `${apiBaseUrl()}/email-verified`;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface DoctorSignup {
   email: string;
   password: string;
@@ -272,6 +281,7 @@ export async function signUpDoctor(input: DoctorSignup): Promise<boolean> {
     email: input.email.trim(),
     password: input.password,
     options: {
+      emailRedirectTo: emailVerifiedUrl(),
       data: {
         full_name: input.fullName.trim(),
         account_type: "doctor",
