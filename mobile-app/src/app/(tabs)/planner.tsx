@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { Text, View } from "react-native";
 import { router } from "expo-router";
 import {
   Body,
@@ -18,6 +19,11 @@ import {
   ToggleRow,
 } from "@/components/ui";
 import { RecipeCard } from "@/components/RecipeCard";
+import { ShareWithDoctor } from "@/components/Care";
+import { useTheme } from "@/components/theme";
+import { useLiveData } from "@/lib/careHooks";
+import { doctorName, getDietInstructions, hasDietInstructions, savePatientProfile, type DietInstructions } from "@/lib/care";
+import { dietPlanRecord } from "@/lib/careRecords";
 import { Refined } from "@/components/Refined";
 import { parseCsvList, predictRecipes, refine } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -50,8 +56,27 @@ const CONDITIONS: Array<{ key: keyof PregnancyInfo; label: string }> = [
 ];
 const COUNTS = [3, 5, 8, 10].map((n) => ({ value: n, label: String(n) }));
 
+/** Lower-cased union of two lists, keeping order. */
+function union(a: string[] | undefined, b: string[] | undefined): string[] {
+  return Array.from(new Set([...(a ?? []), ...(b ?? [])].map((x) => x.trim().toLowerCase()).filter(Boolean)));
+}
+
 export default function PlannerScreen() {
-  const { user } = useAuth();
+  const t = useTheme();
+  const { user, role, careAvailable } = useAuth();
+  const isPatient = Boolean(user) && role === "patient" && careAvailable;
+  const [doctorDiet, setDoctorDiet] = useState<DietInstructions | null>(null);
+  const loadDoctorDiet = useCallback(async () => {
+    if (!user || !isPatient) return;
+    try {
+      setDoctorDiet(await getDietInstructions(user.id));
+    } catch {
+      // the planner works without them
+    }
+  }, [user, isPatient]);
+  useLiveData(loadDoctorDiet, 60_000);
+  const di = hasDietInstructions(doctorDiet) ? doctorDiet : null;
+  const [lastRun, setLastRun] = useState<{ id: number; info: PregnancyInfo; ingredients: string[]; di: DietInstructions | null } | null>(null);
   const [profile, setProfileState] = useState<PregnancyInfo>(loadProfile);
   const [ingredients, setIngredients] = useState("");
   const [aversions, setAversions] = useState((profile.food_aversions ?? []).join(", "));
@@ -86,8 +111,13 @@ export default function PlannerScreen() {
     setMeta(null);
     setRefined(null);
     setSaved({});
-    const pregnancy_info: PregnancyInfo = { ...profile, food_aversions: parseCsvList(aversions) };
-    const ingredientList = parseCsvList(ingredients);
+    // The doctor's instructions are always applied on top of what the patient entered.
+    const pregnancy_info: PregnancyInfo = {
+      ...profile,
+      food_aversions: union(parseCsvList(aversions), di?.avoid),
+      dietary_restrictions: union(profile.dietary_restrictions, di?.restrictions),
+    };
+    const ingredientList = union(parseCsvList(ingredients), di?.include);
     try {
       const data = await predictRecipes({
         pregnancy_info,
@@ -97,6 +127,11 @@ export default function PlannerScreen() {
       const output = data.output ?? [];
       setRecipes(output);
       setMeta(data.meta ?? null);
+      setLastRun((prev) => ({ id: (prev?.id ?? 0) + 1, info: pregnancy_info, ingredients: ingredientList, di }));
+      if (user && isPatient) {
+        // What the patient's doctor sees (her own entries, without the doctor's additions).
+        savePatientProfile(user.id, { ...profile, food_aversions: parseCsvList(aversions) }).catch(() => {});
+      }
 
       if (user && output.length) recordHistory(user.id, "mobile-diet-planner", output).catch(() => {});
 
@@ -145,6 +180,21 @@ export default function PlannerScreen() {
 
   return (
     <Screen>
+      {di ? (
+        <View style={{ backgroundColor: t.infoSoft, borderRadius: 14, padding: 14, gap: 4 }}>
+          <Text style={{ color: t.info, fontWeight: "800" }}>{doctorName(di.updated_by_name)}’s instructions are applied automatically</Text>
+          <Text style={{ color: t.text }}>
+            {[
+              di.restrictions.length ? `Diet: ${di.restrictions.join(", ")}` : null,
+              di.avoid.length ? `Avoiding: ${di.avoid.join(", ")}` : null,
+              di.include.length ? `Favouring: ${di.include.join(", ")}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </Text>
+          {di.note ? <Text style={{ color: t.text, fontStyle: "italic" }}>“{di.note}”</Text> : null}
+        </View>
+      ) : null}
       <Card>
         <SectionLabel>Your pregnancy</SectionLabel>
         <Body>Month of pregnancy</Body>
@@ -235,6 +285,24 @@ export default function PlannerScreen() {
       {recipes ? (
         recipes.length ? (
           <>
+            {lastRun ? (
+              <ShareWithDoctor
+                key={lastRun.id}
+                what="this diet plan"
+                build={() =>
+                  dietPlanRecord({
+                    pregnancy_info: lastRun.info,
+                    ingredients: lastRun.ingredients,
+                    recipes,
+                    meta: meta ?? null,
+                    refined: refined ?? null,
+                    doctor_instructions: lastRun.di
+                      ? { avoid: lastRun.di.avoid, include: lastRun.di.include, restrictions: lastRun.di.restrictions, note: lastRun.di.note, by: lastRun.di.updated_by_name }
+                      : null,
+                  })
+                }
+              />
+            ) : null}
             <H2>{recipes.length} recommended recipes</H2>
             {recipes.map((r, i) => (
               <RecipeCard

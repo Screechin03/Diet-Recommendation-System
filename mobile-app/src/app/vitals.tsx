@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Body, Button, Chips, Disclaimer, ErrorBox, Field, InfoBox, Screen, SectionLabel } from "@/components/ui";
 import { VitalsResult } from "@/components/VitalsViews";
@@ -10,8 +11,10 @@ import { useTheme } from "@/components/theme";
 import { analyzeVitalsDemo, analyzeVitalsFile, vitalsReportPdf } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { loadProfile } from "@/lib/profile";
-import { deleteVitalSession, getVitalSessions, saveVitalSession, type VitalSessionRow } from "@/lib/userData";
-import { STATUS_COPY, formatDuration, type VitalsAnalysis } from "@/lib/vitals";
+import { ReviewPill, ShareWithDoctor, toneColors } from "@/components/Care";
+import { listRecordsOfKind, SEVERITY_COPY, timeAgo, updatePregnancyMonth, type HealthRecord } from "@/lib/care";
+import { vitalsRecord } from "@/lib/careRecords";
+import { type VitalsAnalysis } from "@/lib/vitals";
 
 const SCENARIOS = [
   { value: "normal", label: "Healthy" },
@@ -24,7 +27,8 @@ const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((m) => ({ value: m, label: String
 
 export default function VitalsScreen() {
   const t = useTheme();
-  const { user } = useAuth();
+  const { user, role, careAvailable } = useAuth();
+  const showHistory = Boolean(user) && role === "patient" && careAvailable;
   const [month, setMonth] = useState<number | null>(() => loadProfile().pregnancy_month ?? null);
   const [activity, setActivity] = useState<"rest" | "exercise">("rest");
   const [scenario, setScenario] = useState("normal");
@@ -32,21 +36,20 @@ export default function VitalsScreen() {
   const [busy, setBusy] = useState<null | "file" | "demo">(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<VitalsAnalysis | null>(null);
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [resultId, setResultId] = useState(0);
   const [name, setName] = useState("");
   const [sharing, setSharing] = useState(false);
 
-  const [history, setHistory] = useState<VitalSessionRow[] | null>(null);
+  const [history, setHistory] = useState<HealthRecord[] | null>(null);
 
   const loadHistory = useCallback(async () => {
-    if (!user) return;
+    if (!user || !showHistory) return;
     try {
-      setHistory(await getVitalSessions(user.id));
+      setHistory(await listRecordsOfKind(user.id, "vitals", 5));
     } catch {
       setHistory([]);
     }
-  }, [user]);
+  }, [user, showHistory]);
   useEffect(() => {
     void loadHistory();
   }, [loadHistory]);
@@ -67,7 +70,7 @@ export default function VitalsScreen() {
         { pregnancyMonth: month, activity },
       );
       setResult(a);
-      setSavedId(null);
+      setResultId((n) => n + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The file couldn't be analysed.");
     } finally {
@@ -80,7 +83,7 @@ export default function VitalsScreen() {
     setBusy("demo");
     try {
       setResult(await analyzeVitalsDemo(scenario, { pregnancyMonth: month, activity }));
-      setSavedId(null);
+      setResultId((n) => n + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The sample couldn't be loaded.");
     } finally {
@@ -107,41 +110,26 @@ export default function VitalsScreen() {
     }
   }
 
-  async function save() {
-    if (!user || !result) return;
-    setSaving(true);
-    try {
-      setSavedId(await saveVitalSession(user.id, result));
-      void loadHistory();
-    } catch {
-      setError("Couldn't save this session. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function remove(id: string) {
-    if (!user) return;
-    try {
-      await deleteVitalSession(user.id, id);
-      setHistory((h) => h?.filter((r) => r.id !== id) ?? null);
-    } catch {
-      setError("Couldn't delete that session.");
-    }
-  }
-
   if (result) {
     return (
-      <Screen>
+      // A new scroll view per result, so it opens at the top (where the share panel is).
+      <Screen key={`result-${resultId}`}>
+        <ShareWithDoctor
+          key={resultId}
+          build={() => vitalsRecord(result)}
+          what="this measurement"
+          onSaved={() => {
+            const m = result.session.pregnancy_month;
+            if (user && m && !result.demo) void updatePregnancyMonth(user.id, m).catch(() => undefined);
+            void loadHistory();
+          }}
+        />
         <VitalsResult analysis={result} />
         <View style={[st.card, { backgroundColor: t.card, borderColor: t.border }]}>
           <SectionLabel>Your report</SectionLabel>
           <Body muted>A PDF with these results and the ECG sample, to keep or send to your doctor.</Body>
           <Field label="Name on the report (optional)" value={name} onChangeText={setName} maxLength={80} />
           <Button title={sharing ? "Creating PDF…" : "Share PDF report"} onPress={sharePdf} loading={sharing} />
-          {user ? (
-            <Button title={savedId ? "Saved to your history ✓" : "Save to my history"} variant="secondary" onPress={save} loading={saving} disabled={!!savedId} />
-          ) : null}
         </View>
         <ErrorBox message={error} />
         <Button title="New measurement" variant="secondary" onPress={() => setResult(null)} />
@@ -195,27 +183,25 @@ export default function VitalsScreen() {
       <InfoBox>Live monitoring over a USB cable works on the website, in Chrome or Edge on a computer.</InfoBox>
       <ErrorBox message={error} />
 
-      {user && history?.length ? (
+      {showHistory && history?.length ? (
         <View style={{ gap: 8 }}>
-          <SectionLabel>Saved sessions</SectionLabel>
-          {history.map((row) => {
-            const copy = STATUS_COPY[row.status as keyof typeof STATUS_COPY] ?? STATUS_COPY.insufficient;
-            const dot = { green: t.success, amber: t.warn, red: t.danger, gray: t.muted }[copy.tone];
-            return (
-              <View key={row.id} style={[st.histRow, { backgroundColor: t.card, borderColor: t.border }]}>
-                <View style={[st.dot, { backgroundColor: dot }]} />
-                <Pressable style={{ flex: 1 }} onPress={() => { setResult(row.analysis); setSavedId(row.id); }} accessibilityRole="button">
-                  <Text style={{ color: t.text, fontWeight: "600" }} numberOfLines={1}>{row.headline}</Text>
-                  <Text style={{ color: t.muted, fontSize: 12 }}>
-                    {new Date(row.created_at).toLocaleString()} · {formatDuration(row.duration_s)} min{row.analysis?.demo ? " · sample" : ""}
-                  </Text>
-                </Pressable>
-                <Pressable onPress={() => void remove(row.id)} hitSlop={10} accessibilityLabel="Delete session">
-                  <Ionicons name="trash-outline" size={18} color={t.muted} />
-                </Pressable>
+          <SectionLabel>Recent sessions</SectionLabel>
+          {history.map((row) => (
+            <Pressable
+              key={row.id}
+              onPress={() => router.push({ pathname: "/care/record/[id]", params: { id: row.id } })}
+              accessibilityRole="button"
+              style={[st.histRow, { backgroundColor: t.card, borderColor: t.border }]}
+            >
+              <View style={[st.dot, { backgroundColor: toneColors(t, SEVERITY_COPY[row.severity].tone).fg }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: t.text, fontWeight: "600" }} numberOfLines={1}>{row.summary ?? row.title}</Text>
+                <Text style={{ color: t.muted, fontSize: 12 }}>{timeAgo(row.created_at)}{row.is_sample ? " · sample" : ""}</Text>
               </View>
-            );
-          })}
+              <ReviewPill record={row} />
+            </Pressable>
+          ))}
+          <Button title="All records in My care" variant="secondary" onPress={() => router.push("/account")} />
         </View>
       ) : null}
 

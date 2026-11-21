@@ -1,13 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { ShareWithDoctor } from "@/components/care/ShareWithDoctor";
+import { ReviewPill } from "@/components/care/ui";
 import { FileIcon, ScanIcon, SparkIcon, UploadIcon, XIcon } from "@/components/report/icons";
 import { LiveMonitor } from "@/components/vitals/LiveMonitor";
 import { VitalsResults } from "@/components/vitals/VitalsResults";
 import { formatBytes } from "@/lib/report";
-import { deleteVitalSession, getVitalSessions, saveVitalSession, type VitalSessionRow } from "@/lib/supabaseUserData";
-import { STATUS_COPY, formatDuration, type VitalsAnalysis } from "@/lib/vitals";
+import { listRecordsOfKind, SEVERITY_COPY, timeAgo, updatePregnancyMonth, type HealthRecord } from "@/lib/care";
+import { vitalsRecord } from "@/lib/careRecords";
+import { type VitalsAnalysis } from "@/lib/vitals";
 
 type SourceKind = "usb" | "file" | "demo";
 
@@ -21,44 +25,45 @@ const SCENARIOS = [
 ] as const;
 
 const DOT = { green: "bg-emerald-500", amber: "bg-amber-500", red: "bg-rose-500", gray: "bg-zinc-400" } as const;
+const MAX_RECENT = 5;
 const selectCls =
   "h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 dark:border-zinc-800 dark:bg-zinc-950";
 
 export default function VitalsPage() {
-  const { user } = useAuth();
+  const { user, role, careAvailable } = useAuth();
   const [source, setSource] = useState<SourceKind>("usb");
   const [scenario, setScenario] = useState("normal");
   const [pregnancyMonth, setPregnancyMonth] = useState<number | null>(null);
   const [activity, setActivity] = useState<"rest" | "exercise">("rest");
 
   const [result, setResult] = useState<VitalsAnalysis | null>(null);
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [resultId, setResultId] = useState(0);
 
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
-  const [history, setHistory] = useState<VitalSessionRow[] | null>(null);
+  const [history, setHistory] = useState<HealthRecord[] | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const showHistory = Boolean(user) && role === "patient" && careAvailable;
 
   const loadHistory = useCallback(async () => {
-    if (!user) return;
+    if (!user || !showHistory) return;
     try {
-      setHistory(await getVitalSessions(user.id));
+      setHistory(await listRecordsOfKind(user.id, "vitals", MAX_RECENT));
       setHistoryError(null);
     } catch {
       setHistoryError("Couldn't load your saved sessions.");
     }
-  }, [user]);
+  }, [user, showHistory]);
 
   useEffect(() => {
     void loadHistory();
   }, [loadHistory]);
 
-  function showResult(a: VitalsAnalysis, id: string | null = null) {
+  function showResult(a: VitalsAnalysis) {
     setResult(a);
-    setSavedId(id);
+    setResultId((n) => n + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -88,30 +93,6 @@ export default function VitalsPage() {
       setImportError(e instanceof TypeError ? "Couldn't reach the server. Check your connection." : e instanceof Error ? e.message : "Import failed.");
     } finally {
       setImporting(false);
-    }
-  }
-
-  async function save() {
-    if (!user || !result) return;
-    setSaving(true);
-    try {
-      setSavedId(await saveVitalSession(user.id, result));
-      void loadHistory();
-    } catch {
-      setImportError("Couldn't save this session. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function remove(id: string) {
-    if (!user) return;
-    try {
-      await deleteVitalSession(user.id, id);
-      setHistory((h) => h?.filter((r) => r.id !== id) ?? null);
-      if (savedId === id) setSavedId(null);
-    } catch {
-      setHistoryError("Couldn't delete that session.");
     }
   }
 
@@ -201,13 +182,19 @@ export default function VitalsPage() {
 
         <div className="min-w-0 space-y-6">
           {result ? (
-            <VitalsResults
-              analysis={result}
-              onSave={user ? save : undefined}
-              saved={savedId !== null}
-              saving={saving}
-              onNew={() => setResult(null)}
-            />
+            <>
+              <ShareWithDoctor
+                key={resultId}
+                build={() => vitalsRecord(result)}
+                what="this measurement"
+                onSaved={() => {
+                  const month = result.session.pregnancy_month;
+                  if (user && month && !result.demo) void updatePregnancyMonth(user.id, month).catch(() => undefined);
+                  void loadHistory();
+                }}
+              />
+              <VitalsResults analysis={result} onNew={() => setResult(null)} />
+            </>
           ) : null}
 
           <div className={result ? "hidden" : ""}>
@@ -264,34 +251,34 @@ export default function VitalsPage() {
             )}
           </div>
 
-          {user ? (
+          {showHistory ? (
             <section>
-              <h3 className="mb-3 text-sm font-semibold">Your saved sessions</h3>
+              <div className="mb-3 flex items-baseline justify-between">
+                <h3 className="text-sm font-semibold">Your recent sessions</h3>
+                <Link href="/care" className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400">All records in My care →</Link>
+              </div>
               {historyError ? <p className="text-sm text-rose-600">{historyError}</p> : null}
               {history && !history.length ? (
                 <p className="rounded-2xl border border-dashed border-zinc-300 p-5 text-sm text-zinc-500 dark:border-zinc-800">
-                  No saved sessions yet. After a measurement, choose “Save to my history”.
+                  No saved sessions yet. After a measurement, choose “Just save” or ask your doctor to review it.
                 </p>
               ) : null}
               <ul className="space-y-2">
-                {history?.map((row) => {
-                  const copy = STATUS_COPY[row.status as keyof typeof STATUS_COPY] ?? STATUS_COPY.insufficient;
-                  return (
-                    <li key={row.id} className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT[copy.tone]}`} />
-                      <button onClick={() => showResult(row.analysis, row.id)} className="min-w-0 flex-1 text-left">
-                        <div className="truncate text-sm font-medium">{row.headline}</div>
-                        <div className="text-xs text-zinc-500">
-                          {new Date(row.created_at).toLocaleString()} · {formatDuration(row.duration_s)} min
-                          {row.analysis?.demo ? " · sample data" : ""}
-                        </div>
-                      </button>
-                      <button onClick={() => void remove(row.id)} aria-label="Delete session" className="rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-rose-600 dark:hover:bg-zinc-800">
-                        <XIcon size={15} />
-                      </button>
-                    </li>
-                  );
-                })}
+                {history?.map((row) => (
+                  <li key={row.id}>
+                    <Link href={`/care/records/${row.id}`} className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-3 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900">
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT[SEVERITY_COPY[row.severity].tone]}`} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{row.summary ?? row.title}</span>
+                        <span className="block text-xs text-zinc-500">
+                          {timeAgo(row.created_at)}
+                          {row.is_sample ? " · sample data" : ""}
+                        </span>
+                      </span>
+                      <ReviewPill record={row} />
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </section>
           ) : null}

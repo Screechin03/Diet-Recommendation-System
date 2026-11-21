@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useMemo, useState } from "react";
+import { useLiveData } from "@/components/care/hooks";
+import { ShareWithDoctor } from "@/components/care/ShareWithDoctor";
+import { doctorName, getDietInstructions, hasDietInstructions, savePatientProfile, type DietInstructions } from "@/lib/care";
+import { dietPlanRecord } from "@/lib/careRecords";
 import type { PredictionIn, PredictionOut, PregnancyInfo, Recipe } from "@/lib/types";
 import { parseCsvList, safeJson } from "@/lib/utils";
 import { RecipeCard } from "@/components/RecipeCard";
@@ -42,9 +47,35 @@ function defaultPregnancyInfo(): PregnancyInfo {
   };
 }
 
+/** Lower-cased union of two lists, keeping order. */
+function union(a: string[] | undefined, b: string[] | undefined): string[] {
+  return Array.from(new Set([...(a ?? []), ...(b ?? [])].map((x) => x.trim().toLowerCase()).filter(Boolean)));
+}
+
 export default function DietPlannerPage() {
-  const { user } = useAuth();
+  const { user, role, account, careAvailable } = useAuth();
+  const isPatient = Boolean(user) && role === "patient" && careAvailable;
   const [pregnancy, setPregnancy] = useState<PregnancyInfo>(() => defaultPregnancyInfo());
+  // Start from the profile saved last time (also what the patient's doctor sees).
+  const [prefilledFor, setPrefilledFor] = useState<string | null>(null);
+  const savedInfo = account?.patient?.info;
+  if (user && savedInfo && prefilledFor !== user.id) {
+    setPrefilledFor(user.id);
+    if (Object.keys(savedInfo).length) setPregnancy((p) => ({ ...p, ...savedInfo }));
+  }
+
+  const [doctorDiet, setDoctorDiet] = useState<DietInstructions | null>(null);
+  const loadDoctorDiet = useCallback(async () => {
+    if (!user || !isPatient) return;
+    try {
+      setDoctorDiet(await getDietInstructions(user.id));
+    } catch {
+      // Planner works without them.
+    }
+  }, [user, isPatient]);
+  useLiveData(loadDoctorDiet, 60_000);
+  const di = hasDietInstructions(doctorDiet) ? doctorDiet : null;
+  const [lastRun, setLastRun] = useState<{ id: number; request: PredictionIn; meta: PredictionOut["meta"] | null; di: DietInstructions | null } | null>(null);
   const [ingredientsCsv, setIngredientsCsv] = useState<string>("");
   const [neighbors, setNeighbors] = useState<number>(5);
   const [useGemini, setUseGemini] = useState<boolean>(false);
@@ -56,13 +87,20 @@ export default function DietPlannerPage() {
   const [savingRecipeName, setSavingRecipeName] = useState<string | null>(null);
   const [savedByName, setSavedByName] = useState<Record<string, boolean>>({});
 
+  // The doctor's instructions are always applied on top of what the patient entered.
   const requestBody = useMemo<PredictionIn>(() => {
     return {
-      pregnancy_info: pregnancy,
-      ingredients: parseCsvList(ingredientsCsv),
+      pregnancy_info: di
+        ? {
+            ...pregnancy,
+            food_aversions: union(pregnancy.food_aversions, di.avoid),
+            dietary_restrictions: union(pregnancy.dietary_restrictions, di.restrictions),
+          }
+        : pregnancy,
+      ingredients: di ? union(parseCsvList(ingredientsCsv), di.include) : parseCsvList(ingredientsCsv),
       params: { n_neighbors: neighbors, return_distance: false },
     };
-  }, [pregnancy, ingredientsCsv, neighbors]);
+  }, [pregnancy, ingredientsCsv, neighbors, di]);
 
   async function submit() {
     setLoading(true);
@@ -85,6 +123,13 @@ export default function DietPlannerPage() {
       const data = await safeJson<PredictionOut>(res);
       setRecipes(data.output ?? null);
       setSavedByName({});
+      setLastRun((prev) => ({ id: (prev?.id ?? 0) + 1, request: requestBody, meta: data.meta ?? null, di }));
+      if (user && isPatient) {
+        // Keep the profile the doctor sees up to date (what the patient entered, without the doctor's additions).
+        savePatientProfile(user.id, pregnancy).catch(() => {
+          // Not critical for the plan itself.
+        });
+      }
 
       if (user && data.output && data.output.length) {
         recordRecipeHistoryForUser(user.id, "diet-planner", data.output).catch(() => {
@@ -162,6 +207,25 @@ export default function DietPlannerPage() {
           {loading ? "Generating…" : "Generate"}
         </button>
       </div>
+
+      {di ? (
+        <div className="mt-6 flex flex-wrap items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100">
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold">{doctorName(di.updated_by_name)}’s diet instructions are applied automatically</div>
+            <div className="mt-1 text-sky-900/80 dark:text-sky-200/80">
+              {[
+                di.restrictions.length ? `Diet: ${di.restrictions.join(", ")}` : null,
+                di.avoid.length ? `Avoiding: ${di.avoid.join(", ")}` : null,
+                di.include.length ? `Favouring: ${di.include.join(", ")}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </div>
+            {di.note ? <div className="mt-1 italic">“{di.note}”</div> : null}
+          </div>
+          <Link href="/care" className="shrink-0 text-xs font-semibold text-sky-800 underline dark:text-sky-300">My care</Link>
+        </div>
+      ) : null}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[420px_1fr]">
         <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -375,7 +439,31 @@ export default function DietPlannerPage() {
           </div>
         </section>
 
-        <section className="grid gap-4">
+        <section className="grid content-start gap-4">
+          {recipes && recipes.length && lastRun ? (
+            <ShareWithDoctor
+              key={lastRun.id}
+              what="this diet plan"
+              build={() =>
+                dietPlanRecord({
+                  pregnancy_info: lastRun.request.pregnancy_info,
+                  ingredients: lastRun.request.ingredients,
+                  recipes,
+                  meta: lastRun.meta,
+                  refined: refined ?? null,
+                  doctor_instructions: lastRun.di
+                    ? {
+                        avoid: lastRun.di.avoid,
+                        include: lastRun.di.include,
+                        restrictions: lastRun.di.restrictions,
+                        note: lastRun.di.note,
+                        by: lastRun.di.updated_by_name,
+                      }
+                    : null,
+                })
+              }
+            />
+          ) : null}
           {refined ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
               <div className="text-base font-semibold">{String(refined.title ?? "Refined summary")}</div>

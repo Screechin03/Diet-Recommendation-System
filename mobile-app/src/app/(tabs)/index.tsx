@@ -33,9 +33,9 @@ const FEATURES: Array<{ href: Href; icon: ComponentProps<typeof Ionicons>["name"
   },
   {
     href: "/account",
-    icon: "bookmark-outline",
-    title: "Saved recipes & history",
-    text: "Log in to keep favourite recipes and past recommendations, synced with the website.",
+    icon: "medkit-outline",
+    title: "My care",
+    text: "Choose your doctor, share your reports and readings, and get their reviews and diet advice.",
   },
 ];
 

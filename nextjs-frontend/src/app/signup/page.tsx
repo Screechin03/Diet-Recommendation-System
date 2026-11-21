@@ -208,6 +208,12 @@ export default function SignupPage() {
             Log in
           </Link>
         </p>
+        <p className="mt-4 border-t border-zinc-100 pt-4 text-xs text-zinc-500 dark:border-zinc-800">
+          Are you a doctor?{" "}
+          <Link href="/doctor/signup" className="font-medium text-sky-700 underline dark:text-sky-400">
+            Create a doctor account
+          </Link>
+        </p>
       </div>
     </div>
   );

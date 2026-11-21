@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ShareWithDoctor } from "@/components/care/ShareWithDoctor";
+import { riskRecord } from "@/lib/careRecords";
 import type { HealthAnalyticsInput, RiskPredictionOut } from "@/lib/types";
 import { safeJson } from "@/lib/utils";
 
@@ -296,6 +298,9 @@ export default function HealthAnalyticsPage() {
   const [selectedModel, setSelectedModel] = useState<string>("random_forest");
   const [useGemini, setUseGemini] = useState<boolean>(false);
   const [refined, setRefined] = useState<RefinedOutput | null>(null);
+  const [runId, setRunId] = useState(0);
+  // The inputs that produced the current result (the form may be edited afterwards).
+  const [assessedInput, setAssessedInput] = useState<HealthAnalyticsInput | null>(null);
   const [history, setHistory] = useState<
     Array<{
       ts: number;
@@ -329,6 +334,8 @@ export default function HealthAnalyticsPage() {
 
       const data = await safeJson<RiskPredictionOut>(res);
       setResult(data);
+      setAssessedInput(health);
+      setRunId((n) => n + 1);
 
       const riskPct = probabilityToPercent(data.risk_assessment?.risk_probability);
       setHistory((prev) => {
@@ -591,6 +598,11 @@ export default function HealthAnalyticsPage() {
 
           {result ? (
             <>
+              <ShareWithDoctor
+                key={runId}
+                build={() => riskRecord(assessedInput ?? health, result, refined)}
+                what="this risk check"
+              />
               <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="min-w-60">

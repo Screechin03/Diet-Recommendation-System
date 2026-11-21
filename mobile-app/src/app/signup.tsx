@@ -47,6 +47,7 @@ export default function SignupScreen() {
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry hint="At least 6 characters" autoComplete="new-password" textContentType="newPassword" />
       <ErrorBox message={error} />
       <Button title="Create account" onPress={submit} loading={loading} disabled={!email || password.length < 6} />
+      <Button title="I'm a doctor" variant="secondary" onPress={() => router.replace("/doctor-signup")} />
     </Screen>
   );
 }

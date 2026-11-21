@@ -1,7 +1,9 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { ComponentProps } from "react";
 import { useTheme } from "@/components/theme";
+import { useAuth } from "@/lib/auth";
+import { useCareBadge } from "@/lib/careHooks";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -10,11 +12,15 @@ const TABS: Array<{ name: string; title: string; icon: IconName }> = [
   { name: "planner", title: "Diet Plan", icon: "nutrition-outline" },
   { name: "health", title: "Health", icon: "pulse-outline" },
   { name: "report", title: "Reports", icon: "document-text-outline" },
-  { name: "account", title: "Account", icon: "person-circle-outline" },
+  { name: "account", title: "My care", icon: "medkit-outline" },
 ];
 
 export default function TabLayout() {
   const t = useTheme();
+  const { role } = useAuth();
+  const badge = useCareBadge();
+  // Doctors have their own tabs (inbox, patients, profile).
+  if (role === "doctor") return <Redirect href="/inbox" />;
   return (
     <Tabs
       screenOptions={{
@@ -31,6 +37,7 @@ export default function TabLayout() {
           name={tab.name}
           options={{
             title: tab.title,
+            tabBarBadge: tab.name === "account" && badge ? badge : undefined,
             tabBarIcon: ({ color, size }) => <Ionicons name={tab.icon} size={size} color={String(color)} />,
           }}
         />

@@ -11,130 +11,27 @@ Example:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-## 2) Create tables in Supabase SQL editor
-Run this SQL:
+## 2) Create the database (one file)
+In the Supabase SQL editor, paste and run **`supabase/schema.sql`** (repo root). It creates everything the
+website and the phone app need, and it is safe to run again after every update:
 
-create extension if not exists pgcrypto;
+- accounts, saved recipes and recipe history;
+- doctor accounts and patient profiles;
+- the care team: patient ↔ doctor links, shared health records (reports, vitals, risk checks, diet plans),
+  reviews, messages and diet instructions, all protected by row-level security;
+- private storage for scanned documents (bucket `medical-files`);
+- live updates for messages, and a one-time copy of any old `vital_sessions` rows.
 
-create table if not exists public.saved_recipes (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  recipe_name text not null,
-  recipe jsonb not null,
-  created_at timestamptz not null default now()
-);
+**Doctor access code:** doctors need a code to sign up (default `doctor123`). To change it, run:
 
-create table if not exists public.recipe_history (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  source_page text not null,
-  recipe_name text not null,
-  recipe jsonb not null,
-  created_at timestamptz not null default now()
-);
+    update private.settings set value = 'new-code' where key = 'doctor_access_code';
 
-create table if not exists public.user_profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text not null,
-  full_name text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create or replace function public.handle_new_user_profile()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.user_profiles (id, email, full_name)
-  values (
-    new.id,
-    coalesce(new.email, ''),
-    coalesce(new.raw_user_meta_data ->> 'full_name', null)
-  )
-  on conflict (id) do update
-    set email = excluded.email,
-        full_name = excluded.full_name,
-        updated_at = now();
-
-  return new;
-end;
-$$;
-
-drop trigger if exists on_auth_user_created_profile on auth.users;
-
-create trigger on_auth_user_created_profile
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user_profile();
-
-alter table public.saved_recipes enable row level security;
-alter table public.recipe_history enable row level security;
-alter table public.user_profiles enable row level security;
-
-drop policy if exists "saved_recipes_select_own" on public.saved_recipes;
-drop policy if exists "saved_recipes_insert_own" on public.saved_recipes;
-drop policy if exists "saved_recipes_delete_own" on public.saved_recipes;
-
-drop policy if exists "recipe_history_select_own" on public.recipe_history;
-drop policy if exists "recipe_history_insert_own" on public.recipe_history;
-
-drop policy if exists "user_profiles_select_own" on public.user_profiles;
-drop policy if exists "user_profiles_insert_own" on public.user_profiles;
-drop policy if exists "user_profiles_update_own" on public.user_profiles;
-
-create policy "saved_recipes_select_own"
-  on public.saved_recipes
-  for select
-  to authenticated
-  using (auth.uid() = user_id);
-
-create policy "saved_recipes_insert_own"
-  on public.saved_recipes
-  for insert
-  to authenticated
-  with check (auth.uid() = user_id);
-
-create policy "saved_recipes_delete_own"
-  on public.saved_recipes
-  for delete
-  to authenticated
-  using (auth.uid() = user_id);
-
-create policy "recipe_history_select_own"
-  on public.recipe_history
-  for select
-  to authenticated
-  using (auth.uid() = user_id);
-
-create policy "recipe_history_insert_own"
-  on public.recipe_history
-  for insert
-  to authenticated
-  with check (auth.uid() = user_id);
-
-create policy "user_profiles_select_own"
-  on public.user_profiles
-  for select
-  to authenticated
-  using (auth.uid() = id);
-
-create policy "user_profiles_insert_own"
-  on public.user_profiles
-  for insert
-  to authenticated
-  with check (auth.uid() = id);
-
-create policy "user_profiles_update_own"
-  on public.user_profiles
-  for update
-  to authenticated
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
+To check the database rules on your own computer (needs Postgres 16): `supabase/tests/run.sh`.
 
 ## 3) Supabase Auth settings
 Use Email/Password auth in Supabase Authentication settings.
+
+For the doctor and patient flow, turning **Confirm email off** is simplest (people are signed in straight away).
 
 If email confirmation is enabled:
 - Sign-up will show a success message asking the user to confirm email.
@@ -149,32 +46,8 @@ If email confirmation is disabled:
 - Saved recipes are visible on `/saved-recipes`.
 - Recommendation history is logged automatically on `/diet-planner` and `/recipe-finder` and visible on `/history`.
 
-## 5) Vitals device sessions (heart rate, SpO2, temperature, ECG)
-
-Run this SQL to let signed-in users keep their device readings (web and phone app):
-
-create table if not exists public.vital_sessions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  status text not null check (status in ('normal','attention','urgent','insufficient')),
-  headline text not null,
-  duration_s integer not null,
-  analysis jsonb not null,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists vital_sessions_user_created_idx
-  on public.vital_sessions (user_id, created_at desc);
-
-alter table public.vital_sessions enable row level security;
-
-drop policy if exists "vital_sessions_select_own" on public.vital_sessions;
-drop policy if exists "vital_sessions_insert_own" on public.vital_sessions;
-drop policy if exists "vital_sessions_delete_own" on public.vital_sessions;
-
-create policy "vital_sessions_select_own" on public.vital_sessions
-  for select to authenticated using (auth.uid() = user_id);
-create policy "vital_sessions_insert_own" on public.vital_sessions
-  for insert to authenticated with check (auth.uid() = user_id);
-create policy "vital_sessions_delete_own" on public.vital_sessions
-  for delete to authenticated using (auth.uid() = user_id);
+## 5) Doctors and patients
+- Patients sign up on `/signup`; doctors on `/doctor/signup` (with the access code) and log in on `/doctor/login`.
+- In the app, doctors use "Are you a doctor? Doctor login" on the My care tab.
+- A patient chooses a doctor under **My care → Find a doctor**. The doctor then sees every record she saves,
+  can review it, message her and set diet instructions. Switching doctors removes the old doctor's access at once.

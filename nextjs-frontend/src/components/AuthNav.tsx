@@ -41,7 +41,11 @@ export function AuthNav() {
         </Link>
         {loading ? (
           <span className="text-xs text-zinc-500 dark:text-zinc-400">Checking session...</span>
-        ) : null}
+        ) : (
+          <Link href="/doctor/login" className="px-1 text-xs font-medium text-sky-700 hover:underline dark:text-sky-400">
+            For doctors
+          </Link>
+        )}
       </div>
     );
   }

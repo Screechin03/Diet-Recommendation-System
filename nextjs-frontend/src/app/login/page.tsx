@@ -5,9 +5,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
+import { getAccount } from "@/lib/care";
+
+/** Where to go after logging in: doctors to their dashboard; patients back to where they were. */
+async function homeAfterLogin(): Promise<string> {
+  const next = new URLSearchParams(window.location.search).get("next");
+  const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+  try {
+    const account = await getAccount();
+    if (account.role === "doctor") return safe?.startsWith("/doctor") ? safe : "/doctor";
+  } catch {
+    // Doctor features not installed: everyone is a patient.
+  }
+  return safe && !safe.startsWith("/doctor") ? safe : "/";
+}
 
 export default function LoginPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -29,13 +43,27 @@ export default function LoginPage() {
       });
       if (signInError) throw signInError;
 
-      router.push("/");
+      router.push(await homeAfterLogin());
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (user && role === "doctor") {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-14">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <h1 className="text-2xl font-semibold tracking-tight">You’re signed in as a doctor</h1>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Your patients, reviews and messages are on your dashboard.</p>
+          <div className="mt-6">
+            <Link href="/doctor" className="rounded-lg bg-sky-600 px-4 py-2 text-sm text-white">Open doctor dashboard</Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (user) {
@@ -47,6 +75,9 @@ export default function LoginPage() {
             Open your saved recipes or check your recommendation history.
           </p>
           <div className="mt-6 flex gap-3">
+            <Link href="/care" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white">
+              My care
+            </Link>
             <Link href="/saved-recipes" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
               Saved recipes
             </Link>
@@ -145,6 +176,12 @@ export default function LoginPage() {
           New here?{" "}
           <Link href="/signup" className="font-medium text-zinc-900 underline dark:text-zinc-100">
             Create an account
+          </Link>
+        </p>
+        <p className="mt-4 border-t border-zinc-100 pt-4 text-xs text-zinc-500 dark:border-zinc-800">
+          Are you a doctor?{" "}
+          <Link href="/doctor/login" className="font-medium text-sky-700 underline dark:text-sky-400">
+            Doctor login
           </Link>
         </p>
       </div>

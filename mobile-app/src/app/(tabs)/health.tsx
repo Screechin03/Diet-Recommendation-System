@@ -19,6 +19,8 @@ import {
   ToggleRow,
 } from "@/components/ui";
 import { Refined } from "@/components/Refined";
+import { ShareWithDoctor } from "@/components/Care";
+import { riskRecord } from "@/lib/careRecords";
 import { useTheme } from "@/components/theme";
 import { predictRisk, refine } from "@/lib/api";
 import type { HealthAnalyticsInput, RefinedSummary, RiskPredictionOut, RiskRecommendations } from "@/lib/types";
@@ -105,6 +107,7 @@ export default function HealthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RiskPredictionOut | null>(null);
   const [refined, setRefined] = useState<RefinedSummary | null>(null);
+  const [assessed, setAssessed] = useState<{ id: number; input: HealthAnalyticsInput } | null>(null);
 
   const update = (patch: Partial<HealthAnalyticsInput>) => setH((cur) => ({ ...cur, ...patch }));
 
@@ -116,6 +119,7 @@ export default function HealthScreen() {
     try {
       const data = await predictRisk(h);
       setResult(data);
+      setAssessed((prev) => ({ id: (prev?.id ?? 0) + 1, input: h }));
       if (useAi) setRefined(await refine("risk", { health_data: h, risk_response: data }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -192,6 +196,10 @@ export default function HealthScreen() {
 
       <Button title="Check my risk" onPress={submit} loading={loading} />
       <ErrorBox message={error} />
+
+      {result && assessed ? (
+        <ShareWithDoctor key={assessed.id} build={() => riskRecord(assessed.input, result, refined)} what="this risk check" />
+      ) : null}
 
       {risk ? (
         <Card style={{ borderColor: high ? t.danger : t.success, borderWidth: 2 }}>

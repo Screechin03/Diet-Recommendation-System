@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ShareWithDoctor } from "@/components/care/ShareWithDoctor";
 import { UploadDropzone } from "@/components/report/UploadDropzone";
 import { HandwritingScan } from "@/components/report/HandwritingScan";
 import { DietPlanView, ReportView } from "@/components/report/ReportView";
@@ -14,6 +15,7 @@ import {
   type OcrResult,
   type PrescriptionApiResponse,
 } from "@/lib/report";
+import { reportRecord } from "@/lib/careRecords";
 
 type Mode = "full" | "scan";
 
@@ -47,6 +49,7 @@ export default function PrescriptionReaderPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<{ report: PrescriptionApiResponse | null; ocr: OcrResult | null } | null>(null);
+  const [runId, setRunId] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -74,6 +77,7 @@ export default function PrescriptionReaderPage() {
     setError(null);
     setNotice(null);
     setResult(null);
+    setRunId((n) => n + 1);
 
     const form = new FormData();
     form.set("file", file);
@@ -271,6 +275,9 @@ export default function PrescriptionReaderPage() {
 
           {result ? (
             <>
+              {result.report?.success ? (
+                <ShareWithDoctor key={runId} build={() => reportRecord(result.report!)} file={file} what="this report" />
+              ) : null}
               {hasStructured && report ? <ReportView report={report} /> : null}
               {result.report?.success && !hasStructured ? (
                 <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">

@@ -37,19 +37,7 @@ function MetricCard({ title, value, unit, sub, range, status }: { title: string;
   );
 }
 
-export function VitalsResults({
-  analysis,
-  onSave,
-  saved,
-  saving,
-  onNew,
-}: {
-  analysis: VitalsAnalysis;
-  onSave?: () => void;
-  saved?: boolean;
-  saving?: boolean;
-  onNew?: () => void;
-}) {
+export function VitalsResults({ analysis, onNew }: { analysis: VitalsAnalysis; onNew?: () => void }) {
   const [name, setName] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -212,15 +200,6 @@ export function VitalsResults({
         </div>
         {downloadError ? <p className="mt-2 text-sm text-rose-600">{downloadError}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
-          {onSave ? (
-            <button
-              onClick={onSave}
-              disabled={saved || saving}
-              className="h-10 rounded-xl border border-zinc-200 px-4 text-sm font-medium hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-800 dark:hover:bg-zinc-900"
-            >
-              {saved ? "Saved to your history ✓" : saving ? "Saving…" : "Save to my history"}
-            </button>
-          ) : null}
           {onNew ? (
             <button onClick={onNew} className="h-10 rounded-xl px-4 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40">
               New measurement

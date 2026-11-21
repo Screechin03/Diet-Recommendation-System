@@ -5,6 +5,8 @@ import * as ImagePicker from "expo-image-picker";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Body, Disclaimer, ErrorBox, Field, Screen, ToggleRow } from "@/components/ui";
 import { DietPlanCard, ReportCard, ScanCard } from "@/components/ReportViews";
+import { ShareWithDoctor } from "@/components/Care";
+import { reportRecord } from "@/lib/careRecords";
 import { useTheme } from "@/components/theme";
 import { prescriptionReport, scanHandwriting } from "@/lib/api";
 import {
@@ -57,6 +59,7 @@ export default function ReportScreen() {
   const [report, setReport] = useState<PrescriptionApiResponse | null>(null);
   const [ocr, setOcr] = useState<OcrResult | null>(null);
   const requestId = useRef(0);
+  const [runId, setRunId] = useState(0);
 
   useEffect(() => {
     if (!loading) return;
@@ -109,6 +112,7 @@ export default function ReportScreen() {
   async function submit() {
     if (!file || loading) return;
     const id = ++requestId.current;
+    setRunId(id);
     setLoading(true);
     setElapsed(0);
     setError(null);
@@ -298,6 +302,9 @@ export default function ReportScreen() {
         </View>
       ) : null}
 
+      {report?.success ? (
+        <ShareWithDoctor key={runId} build={() => reportRecord(report)} file={file} what="this report" />
+      ) : null}
       {hasStructured && extracted ? <ReportCard report={extracted} /> : null}
       {report?.success && !hasStructured ? (
         <View style={[st.notice, { backgroundColor: t.muted2 }]}>
