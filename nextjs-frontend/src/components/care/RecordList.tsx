@@ -12,6 +12,7 @@ const FILTERS: Array<{ value: RecordKind | "all"; label: string }> = [
   { value: "vitals", label: "Vital signs" },
   { value: "risk", label: "Risk checks" },
   { value: "diet_plan", label: "Diet plans" },
+  { value: "med_check", label: "Medicines" },
 ];
 
 export function RecordList({

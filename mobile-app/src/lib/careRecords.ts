@@ -4,6 +4,7 @@
 import type { NewRecord, Severity } from "./care";
 import { humanizeDocType, normalizeReport, type PrescriptionApiResponse } from "./report";
 import type { HealthAnalyticsInput, PregnancyInfo, PredictionOut, Recipe, RiskPredictionOut } from "./types";
+import type { MedCheckResult } from "./meds";
 import type { VitalsAnalysis } from "./vitals";
 
 export interface RefinedSummary {
@@ -17,6 +18,7 @@ export interface ReportRecordData {
   diet_plan: Record<string, unknown> | null;
   ocr: { quality: string; message: string; text: string; avg_confidence: number; engine: string } | null;
   file: PrescriptionApiResponse["file"] | null;
+  med_check?: MedCheckResult | null;
 }
 
 export interface RiskRecordData {
@@ -43,7 +45,11 @@ export function probabilityToPercent(probability: unknown): number | null {
   return Math.max(0, Math.min(100, Math.round(p)));
 }
 
-export function reportRecord(resp: PrescriptionApiResponse): NewRecord {
+const MED_SEVERITY: Record<MedCheckResult["status"], Severity> = { ok: "normal", caution: "attention", avoid: "urgent" };
+const SEVERITY_ORDER: Severity[] = ["info", "normal", "attention", "urgent"];
+
+/** A scanned report, with the medicine safety check of its medicines when there is one. */
+export function reportRecord(resp: PrescriptionApiResponse, medCheck: MedCheckResult | null = null): NewRecord {
   const report = normalizeReport(resp.extracted);
   const flagged = report?.tests.filter((t) => t.flag && t.flag !== "normal").length ?? 0;
   const parts = [
@@ -56,12 +62,15 @@ export function reportRecord(resp: PrescriptionApiResponse): NewRecord {
   const ocr = resp.ocr
     ? { quality: resp.ocr.quality, message: resp.ocr.message, text: resp.ocr.text, avg_confidence: resp.ocr.avg_confidence, engine: resp.ocr.engine }
     : null;
-  const data: ReportRecordData = { extracted: resp.extracted ?? null, diet_plan: resp.diet_plan ?? null, ocr, file: resp.file ?? null };
+  const data: ReportRecordData = { extracted: resp.extracted ?? null, diet_plan: resp.diet_plan ?? null, ocr, file: resp.file ?? null, med_check: medCheck };
+  const reportSeverity: Severity = flagged || report?.uncertainties.length ? "attention" : "normal";
+  const medSeverity = medCheck ? MED_SEVERITY[medCheck.status] : "normal";
+  if (medCheck && medCheck.status !== "ok") parts.unshift(medCheck.headline.replace(/\.$/, ""));
   return {
     kind: "report",
     title: report?.document.type ? humanizeDocType(report.document.type) : "Medical document",
     summary: parts.join(" · ") || (ocr?.text ? "Handwriting scan" : null),
-    severity: flagged || report?.uncertainties.length ? "attention" : "normal",
+    severity: SEVERITY_ORDER.indexOf(medSeverity) > SEVERITY_ORDER.indexOf(reportSeverity) ? medSeverity : reportSeverity,
     data: data as unknown as Record<string, unknown>,
   };
 }

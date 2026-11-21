@@ -1,0 +1,7 @@
+# Training only (the app's backend serves exported numpy files and needs none of these).
+torch==2.5.1
+torch_geometric==2.6.1
+rdkit==2024.3.6
+scikit-learn==1.5.2
+pandas==2.2.3
+numpy==1.26.4

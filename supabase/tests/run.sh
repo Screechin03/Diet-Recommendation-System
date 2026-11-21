@@ -33,3 +33,4 @@ SQL
 echo "schema.sql applied twice without errors"
 
 "${PSQL[@]}" -f "$HERE/care_team.test.sql"
+"${PSQL[@]}" -f "$HERE/medications.test.sql"

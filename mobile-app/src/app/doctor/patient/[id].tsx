@@ -4,6 +4,8 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { Body, Button, Card, Chips, ErrorBox, InfoBox, Screen, SectionLabel } from "@/components/ui";
 import { Avatar, Pill, RecordRow, Thread } from "@/components/Care";
 import { DietInstructionsEditor } from "@/components/CareRecord";
+import { MedCheckView } from "@/components/Meds";
+import { checkMedicines, listMyMedicines, type MedCheckResult, type PatientMedication } from "@/lib/meds";
 import { useTheme } from "@/components/theme";
 import { useLiveData } from "@/lib/careHooks";
 import { confirmAction } from "@/lib/confirm";
@@ -23,7 +25,7 @@ import {
   type RecordSummary,
 } from "@/lib/care";
 
-type Tab = "records" | "diet" | "messages";
+type Tab = "records" | "medicines" | "diet" | "messages";
 const CONDITIONS: Array<[string, string]> = [
   ["has_gestational_diabetes", "Gestational diabetes"],
   ["has_anemia", "Anaemia"],
@@ -36,7 +38,7 @@ export default function DoctorPatientScreen() {
   const t = useTheme();
   const params = useLocalSearchParams<{ id: string; tab?: string }>();
   const patientId = params.id;
-  const [tab, setTab] = useState<Tab>(params.tab === "messages" || params.tab === "diet" ? params.tab : "records");
+  const [tab, setTab] = useState<Tab>(params.tab === "messages" || params.tab === "diet" || params.tab === "medicines" ? params.tab : "records");
   const [row, setRow] = useState<DoctorPatientRow | null | undefined>(undefined);
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [records, setRecords] = useState<RecordSummary[] | null>(null);
@@ -141,6 +143,7 @@ export default function DoctorPatientScreen() {
       <Chips
         options={[
           { value: "records" as const, label: `Records${recordUnread ? ` (${recordUnread} new)` : ""}` },
+          { value: "medicines" as const, label: "Medicines" },
           { value: "diet" as const, label: "Diet" },
           { value: "messages" as const, label: `Messages${unread.general ? ` (${unread.general})` : ""}` },
         ]}
@@ -161,6 +164,8 @@ export default function DoctorPatientScreen() {
         )
       ) : null}
 
+      {tab === "medicines" ? <DoctorMedicines patientId={patientId} month={month ?? null} /> : null}
+
       {tab === "diet" ? (
         dietLoaded ? <DietInstructionsEditor patientId={patientId} current={diet} onSaved={setDiet} /> : <ActivityIndicator color={t.info} />
       ) : null}
@@ -175,5 +180,53 @@ export default function DoctorPatientScreen() {
       <Body muted>You see this patient’s records while she stays connected to you.</Body>
       <Button title="End care" variant="danger" onPress={end} loading={ending} />
     </Screen>
+  );
+}
+
+function DoctorMedicines({ patientId, month }: { patientId: string; month: number | null }) {
+  const t = useTheme();
+  const [meds, setMeds] = useState<PatientMedication[] | null>(null);
+  const [check, setCheck] = useState<MedCheckResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    try {
+      setMeds(await listMyMedicines(patientId));
+    } catch (e) {
+      setError(careErrorMessage(e, "Couldn't load the medicines."));
+    }
+  }, [patientId]);
+  useLiveData(load, 60_000);
+
+  async function run() {
+    if (!meds?.length) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setCheck(await checkMedicines(meds, month));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Check failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <Card>
+        <SectionLabel>Current medicines</SectionLabel>
+        {meds === null && !error ? <ActivityIndicator color={t.info} /> : null}
+        {meds && !meds.length ? <Body muted>No medicines listed yet.</Body> : null}
+        {meds?.map((m) => (
+          <View key={m.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+            <Text style={{ color: t.text, fontWeight: "700", flexShrink: 1 }}>{m.name}</Text>
+            <Text style={{ color: t.muted, fontSize: 12 }}>{[m.dose, m.frequency].filter(Boolean).join(" · ") || "dose not given"}</Text>
+          </View>
+        ))}
+        <ErrorBox message={error} />
+        {meds?.length ? <Button title={`Check these${month ? ` for month ${month}` : ""}`} onPress={run} loading={busy} /> : null}
+      </Card>
+      {check ? <MedCheckView result={check} /> : null}
+    </>
   );
 }

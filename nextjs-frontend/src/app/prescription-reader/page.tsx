@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ShareWithDoctor } from "@/components/care/ShareWithDoctor";
+import { PrescriptionMedCheck } from "@/components/meds/PrescriptionMedCheck";
 import { UploadDropzone } from "@/components/report/UploadDropzone";
 import { HandwritingScan } from "@/components/report/HandwritingScan";
 import { DietPlanView, ReportView } from "@/components/report/ReportView";
@@ -16,6 +17,7 @@ import {
   type PrescriptionApiResponse,
 } from "@/lib/report";
 import { reportRecord } from "@/lib/careRecords";
+import { medicinesFromReport, type MedCheckResult } from "@/lib/meds";
 
 type Mode = "full" | "scan";
 
@@ -50,6 +52,7 @@ export default function PrescriptionReaderPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<{ report: PrescriptionApiResponse | null; ocr: OcrResult | null } | null>(null);
   const [runId, setRunId] = useState(0);
+  const [medCheck, setMedCheck] = useState<MedCheckResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -63,6 +66,7 @@ export default function PrescriptionReaderPage() {
 
   const report = useMemo(() => normalizeReport(result?.report?.extracted), [result]);
   const plan = useMemo(() => normalizeDietPlan(result?.report?.diet_plan), [result]);
+  const medicines = useMemo(() => medicinesFromReport(result?.report?.extracted), [result]);
   const stages = STAGES[mode];
   const activeStage = stages.reduce((acc, s, i) => (elapsed >= s.at ? i : acc), 0);
 
@@ -77,6 +81,7 @@ export default function PrescriptionReaderPage() {
     setError(null);
     setNotice(null);
     setResult(null);
+    setMedCheck(null);
     setRunId((n) => n + 1);
 
     const form = new FormData();
@@ -275,10 +280,13 @@ export default function PrescriptionReaderPage() {
 
           {result ? (
             <>
-              {result.report?.success ? (
-                <ShareWithDoctor key={runId} build={() => reportRecord(result.report!)} file={file} what="this report" />
-              ) : null}
               {hasStructured && report ? <ReportView report={report} /> : null}
+              {result.report?.success && medicines.length ? (
+                <PrescriptionMedCheck key={`meds-${runId}`} medicines={medicines} onResult={setMedCheck} />
+              ) : null}
+              {result.report?.success ? (
+                <ShareWithDoctor key={runId} build={() => reportRecord(result.report!, medCheck)} file={file} what="this report" />
+              ) : null}
               {result.report?.success && !hasStructured ? (
                 <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
                   No medicines or test results were found in this document.

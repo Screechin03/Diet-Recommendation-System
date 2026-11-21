@@ -6,6 +6,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Body, Disclaimer, ErrorBox, Field, Screen, ToggleRow } from "@/components/ui";
 import { DietPlanCard, ReportCard, ScanCard } from "@/components/ReportViews";
 import { ShareWithDoctor } from "@/components/Care";
+import { PrescriptionMedCheck } from "@/components/Meds";
+import { medicinesFromReport, type MedCheckResult } from "@/lib/meds";
 import { reportRecord } from "@/lib/careRecords";
 import { useTheme } from "@/components/theme";
 import { prescriptionReport, scanHandwriting } from "@/lib/api";
@@ -60,6 +62,7 @@ export default function ReportScreen() {
   const [ocr, setOcr] = useState<OcrResult | null>(null);
   const requestId = useRef(0);
   const [runId, setRunId] = useState(0);
+  const [medCheck, setMedCheck] = useState<MedCheckResult | null>(null);
 
   useEffect(() => {
     if (!loading) return;
@@ -73,6 +76,7 @@ export default function ReportScreen() {
 
   const extracted = useMemo(() => normalizeReport(report?.extracted), [report]);
   const plan = useMemo(() => normalizeDietPlan(report?.diet_plan), [report]);
+  const medicines = useMemo(() => medicinesFromReport(report?.extracted), [report]);
   const stages = STAGES[mode];
   const activeStage = stages.reduce((acc, st, i) => (elapsed >= st.at ? i : acc), 0);
 
@@ -113,6 +117,7 @@ export default function ReportScreen() {
     if (!file || loading) return;
     const id = ++requestId.current;
     setRunId(id);
+    setMedCheck(null);
     setLoading(true);
     setElapsed(0);
     setError(null);
@@ -302,10 +307,13 @@ export default function ReportScreen() {
         </View>
       ) : null}
 
-      {report?.success ? (
-        <ShareWithDoctor key={runId} build={() => reportRecord(report)} file={file} what="this report" />
-      ) : null}
       {hasStructured && extracted ? <ReportCard report={extracted} /> : null}
+      {report?.success && medicines.length ? (
+        <PrescriptionMedCheck key={`meds-${runId}`} medicines={medicines} onResult={setMedCheck} />
+      ) : null}
+      {report?.success ? (
+        <ShareWithDoctor key={runId} build={() => reportRecord(report, medCheck)} file={file} what="this report" />
+      ) : null}
       {report?.success && !hasStructured ? (
         <View style={[st.notice, { backgroundColor: t.muted2 }]}>
           <Text style={{ color: t.text }}>No medicines or test results were found in this document.</Text>

@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useRef, useState } from "react";
 import { DietSummary } from "@/components/care/DietSummary";
 import { DietInstructionsEditor, VitalsHistory } from "@/components/care/DoctorTools";
+import { DoctorMedicinesTab } from "@/components/meds/DoctorMedicinesTab";
 import { useLiveData } from "@/components/care/hooks";
 import { RecordList } from "@/components/care/RecordList";
 import { Thread } from "@/components/care/Thread";
@@ -28,7 +29,7 @@ import {
   type RecordSummary,
 } from "@/lib/care";
 
-type Tab = "records" | "vitals" | "diet" | "messages";
+type Tab = "records" | "medicines" | "vitals" | "diet" | "messages";
 
 const CONDITIONS: Array<[string, string]> = [
   ["has_gestational_diabetes", "Gestational diabetes"],
@@ -39,7 +40,7 @@ const CONDITIONS: Array<[string, string]> = [
 ];
 
 function asTab(t: string | null): Tab {
-  return t === "vitals" || t === "diet" || t === "messages" ? t : "records";
+  return t === "medicines" || t === "vitals" || t === "diet" || t === "messages" ? t : "records";
 }
 
 export default function DoctorPatientPage() {
@@ -135,6 +136,7 @@ function DoctorPatient() {
   const generalUnread = unread.general ?? 0;
   const TABS: Array<{ id: Tab; label: string; badge?: number }> = [
     { id: "records", label: "Records", badge: Object.entries(unread).filter(([k]) => k !== "general").reduce((n, [, v]) => n + v, 0) },
+    { id: "medicines", label: "Medicines" },
     { id: "vitals", label: "Vital signs" },
     { id: "diet", label: "Diet" },
     { id: "messages", label: "Messages", badge: generalUnread },
@@ -204,6 +206,8 @@ function DoctorPatient() {
             />
           )
         ) : null}
+
+        {tab === "medicines" ? <DoctorMedicinesTab patientId={patientId} month={month ?? null} records={records} /> : null}
 
         {tab === "vitals" ? (
           vitals === null ? <div className="flex items-center gap-2 text-sm text-zinc-500"><Spinner /> Loading…</div> : <VitalsHistory patientId={patientId} records={vitals} />

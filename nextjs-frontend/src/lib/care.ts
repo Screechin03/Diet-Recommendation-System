@@ -7,7 +7,7 @@ import { EMAIL_VERIFIED_PATH, getSupabaseBrowserClient } from "@/lib/supabase";
 import type { PregnancyInfo } from "@/lib/types";
 
 export type Role = "patient" | "doctor";
-export type RecordKind = "report" | "vitals" | "risk" | "diet_plan";
+export type RecordKind = "report" | "vitals" | "risk" | "diet_plan" | "med_check";
 export type Severity = "normal" | "info" | "attention" | "urgent";
 export type ReviewStatus = "none" | "requested" | "reviewed";
 export type Verdict = "looks_fine" | "needs_changes" | "see_me";
@@ -154,6 +154,7 @@ export const KIND_COPY: Record<RecordKind, { label: string; plural: string }> = 
   vitals: { label: "Vital signs", plural: "Vital signs" },
   risk: { label: "Risk check", plural: "Risk checks" },
   diet_plan: { label: "Diet plan", plural: "Diet plans" },
+  med_check: { label: "Medicine check", plural: "Medicine checks" },
 };
 
 export const VERDICT_COPY: Record<Verdict, { label: string; tone: "green" | "amber" | "red"; patientLine: string }> = {

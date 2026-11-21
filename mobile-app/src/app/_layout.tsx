@@ -30,6 +30,8 @@ function RootNavigator() {
         headerTintColor: t.primary,
         headerTitleStyle: { color: t.text },
         contentStyle: { backgroundColor: t.bg },
+        // Show only the arrow: otherwise iOS labels it with the route group name "(tabs)".
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
       <Stack.Protected guard={signedIn}>
@@ -38,6 +40,7 @@ function RootNavigator() {
         <Stack.Screen name="saved" options={{ title: "Saved recipes" }} />
         <Stack.Screen name="history" options={{ title: "Recommendation history" }} />
         <Stack.Screen name="vitals" options={{ title: "Vital signs" }} />
+        <Stack.Screen name="medicines" options={{ title: "Medicine safety" }} />
         <Stack.Screen name="care/doctors" options={{ title: "Choose your doctor" }} />
         <Stack.Screen name="care/record/[id]" options={{ title: "Record" }} />
         <Stack.Screen name="care/messages" options={{ title: "Messages" }} />

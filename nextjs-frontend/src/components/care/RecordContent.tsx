@@ -5,7 +5,9 @@ import { RecipeCard } from "@/components/RecipeCard";
 import { DietPlanView, ReportView } from "@/components/report/ReportView";
 import { AlertIcon, CheckIcon, FileIcon, ScanIcon, SparkIcon } from "@/components/report/icons";
 import { Button, Card, ExternalIcon, Notice, Pill } from "@/components/care/ui";
+import { MedCheckView } from "@/components/meds/MedCheckView";
 import { VitalsResults } from "@/components/vitals/VitalsResults";
+import type { MedCheckResult } from "@/lib/meds";
 import { careErrorMessage, doctorName, fileUrl, type HealthRecord } from "@/lib/care";
 import { probabilityToPercent, type DietPlanRecordData, type ReportRecordData, type RiskRecordData } from "@/lib/careRecords";
 import { formatBytes, isEmptyReport, normalizeDietPlan, normalizeReport } from "@/lib/report";
@@ -22,6 +24,10 @@ export function RecordContent({ record }: { record: HealthRecord }) {
       return <RiskRecord data={record.data as unknown as RiskRecordData} />;
     case "diet_plan":
       return <DietPlanRecord data={record.data as unknown as DietPlanRecordData} />;
+    case "med_check": {
+      const r = (record.data as { result?: MedCheckResult }).result;
+      return r?.medicines ? <MedCheckView result={r} /> : <Unreadable />;
+    }
     default:
       return <Unreadable />;
   }
@@ -86,6 +92,12 @@ function ReportRecord({ record }: { record: HealthRecord }) {
     <div className="space-y-4">
       <OriginalFile record={record} />
       {structured && report ? <ReportView report={report} /> : null}
+      {data.med_check?.medicines ? (
+        <Card className="p-5">
+          <h3 className="mb-3 text-sm font-semibold">Medicine safety check (month {data.med_check.pregnancy_month ?? "not set"})</h3>
+          <MedCheckView result={data.med_check} />
+        </Card>
+      ) : null}
       {plan ? <DietPlanView plan={plan} /> : null}
       {data.ocr?.text ? (
         <Card className="p-5">

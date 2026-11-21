@@ -19,6 +19,7 @@ website and the phone app need, and it is safe to run again after every update:
 - doctor accounts and patient profiles;
 - the care team: patient ↔ doctor links, shared health records (reports, vitals, risk checks, diet plans),
   reviews, messages and diet instructions, all protected by row-level security;
+- each patient's medicine list ("My medicines", readable by her current doctor) and saved medicine checks;
 - private storage for scanned documents (bucket `medical-files`);
 - live updates for messages, and a one-time copy of any old `vital_sessions` rows.
 

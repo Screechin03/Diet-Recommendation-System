@@ -32,6 +32,9 @@ so the Gemini key stays on the server and the ingredient-correction and diet-fil
 | **Reports** tab → *Full report* (web *Prescription Reader*) | `POST /api/prescription_report` (multipart) | proxy, 110 s timeout | `POST /prescription_report` → block-letter handwriting scan + Gemini vision extraction → Gemini diet plan. If Gemini is unavailable, the scan is still returned |
 | **Reports** tab → *Handwriting scan* | `POST /api/ocr_handwriting` (multipart) | proxy, 30 s timeout | `POST /ocr/handwriting` → h_recog character model (ONNX). No AI key needed; see `FastAPI_Backend/ocr/README.md` |
 | **Vitals** screen (Home card, Health tab button) | `POST /api/vitals/analyze_file`, `/api/vitals/analyze`, `/api/vitals/report`, `GET /api/vitals/demo` | proxies | `vitals/`: parse the device's SD-card file, analyse, build the PDF (shared via the share sheet). Live USB is on the website only (Web Serial); see `Docs/DEVICE_PROTOCOL.md` |
+| **Medicine safety** screen (Home card; step 2 after a prescription scan) | `GET /api/meds/search`, `POST /api/meds/check` | proxies | `med_safety/`: pregnancy tier per month, clashes, daily timing plan; list saved in Supabase `patient_medications` |
+| **My care** tab (patients) | Supabase only | — | Choose/switch doctor, records, reviews, messages, diet instructions (`supabase/schema.sql`) |
+| **Doctor** tabs (Inbox, Patients, Profile) | Supabase only | — | Separate login with the access code; review records, set diet instructions, see medicines |
 | **Account** tab, Login, Sign up, Saved, History | Supabase Auth + tables | — | same accounts as the website |
 
 Left out of the app on purpose: the web `/features` and `/docs` pages (marketing/API docs),
@@ -48,7 +51,8 @@ src/app/                 screens (Expo Router: each file is a route)
   (tabs)/health.tsx      Health risk check
   (tabs)/report.tsx      Prescription reader + handwriting scan (camera / photos / PDF)
   (tabs)/account.tsx     Account
-  login.tsx signup.tsx saved.tsx history.tsx vitals.tsx
+  login.tsx signup.tsx saved.tsx history.tsx vitals.tsx medicines.tsx
+  doctor-login.tsx doctor-signup.tsx  (doctor)/  care/  doctor/
 src/lib/api.ts           every backend call in one place
 src/lib/supabase.ts      Supabase client (session persisted on device)
 src/lib/userData.ts      saved recipes + history queries

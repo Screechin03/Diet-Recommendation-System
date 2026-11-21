@@ -84,6 +84,7 @@ const KIND_ICON: Record<RecordKind, IconName> = {
   vitals: "pulse-outline",
   risk: "shield-checkmark-outline",
   diet_plan: "nutrition-outline",
+  med_check: "medkit-outline",
 };
 
 export function KindIcon({ kind, size = 40 }: { kind: RecordKind; size?: number }) {

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, conlist
@@ -33,6 +33,9 @@ from gemini_client import gemini_enabled
 from gemini_refiner import refine_recipe_tips, refine_risk_explanation
 from model import SEARCH_COLUMN, build_search_text, output_recommended_recipes, recommend
 from ocr import handwriting as handwriting_ocr
+from med_safety.catalog import get_catalog as get_med_catalog
+from med_safety.checker import check_medicines
+from med_safety.model_layer import get_model as get_med_model
 from vitals.analysis import analyze as analyze_vitals
 from vitals.protocol import ProtocolError, parse_bytes as parse_vitals_bytes, parse_lines as parse_vitals_lines
 from vitals.report_pdf import build_report as build_vitals_report
@@ -498,6 +501,10 @@ def endpoints():
             {"method": "POST", "path": "/vitals/analyze_file", "purpose": "Analyse an SD-card session file (multipart: file)"},
             {"method": "POST", "path": "/vitals/report", "purpose": "PDF report from an analysis"},
             {"method": "GET", "path": "/vitals/demo", "purpose": "Simulated session (sample data)"},
+            {"method": "GET", "path": "/meds/search", "purpose": "Medicine name autocomplete (brand or generic): q"},
+            {"method": "POST", "path": "/meds/check",
+             "purpose": "Pregnancy safety, interactions and timing plan for a list of medicines (JSON: medicines, pregnancy_month)"},
+            {"method": "GET", "path": "/meds/model", "purpose": "Status and test metrics of the drug-interaction graph model"},
             {"method": "GET", "path": "/health", "purpose": "Readiness check"},
         ],
     }
@@ -670,6 +677,35 @@ async def _run_ocr(content: bytes, mime_type: str) -> Tuple[Optional[Dict[str, A
 
 VITALS_MAX_LINE_CHARS = 20_000
 VITALS_MAX_FILE_BYTES = 25 * 1024 * 1024
+
+
+class MedicineIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    dose: Optional[str] = Field(None, max_length=100)
+    frequency: Optional[str] = Field(None, max_length=100)
+
+
+class MedCheckIn(BaseModel):
+    medicines: conlist(MedicineIn, min_items=1, max_items=30)
+    pregnancy_month: Optional[int] = Field(None, ge=1, le=9)
+
+
+@app.get("/meds/search")
+def meds_search(q: str = Query(..., min_length=1, max_length=100), limit: int = Query(8, ge=1, le=20)):
+    return {"results": get_med_catalog().search(q, limit)}
+
+
+@app.post("/meds/check")
+def meds_check(body: MedCheckIn):
+    medicines = [m.dict() for m in body.medicines if m.name.strip()]
+    if not medicines:
+        raise HTTPException(status_code=422, detail="Add at least one medicine name.")
+    return check_medicines(medicines, body.pregnancy_month)
+
+
+@app.get("/meds/model")
+def meds_model():
+    return get_med_model().status()
 
 
 class VitalsAnalyzeIn(BaseModel):

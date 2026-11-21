@@ -13,6 +13,7 @@ const PATIENT_LINKS = [
   { href: "/recipe-finder", label: "Recipe Finder" },
   { href: "/health-analytics", label: "Health Analytics" },
   { href: "/vitals", label: "Vitals" },
+  { href: "/medicines", label: "Medicines" },
   { href: "/prescription-reader", label: "Prescription Reader" },
   { href: "/features", label: "Features" },
   { href: "/docs", label: "Docs" },

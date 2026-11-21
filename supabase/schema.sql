@@ -238,7 +238,7 @@ create index if not exists care_links_doctor_idx on public.care_links (doctor_id
 create table if not exists public.patient_records (
   id uuid primary key default gen_random_uuid(),
   patient_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  kind text not null check (kind in ('report', 'vitals', 'risk', 'diet_plan')),
+  kind text not null check (kind in ('report', 'vitals', 'risk', 'diet_plan', 'med_check')),
   title text not null check (char_length(title) between 1 and 200),
   summary text check (char_length(summary) <= 500),
   severity text not null default 'info' check (severity in ('normal', 'info', 'attention', 'urgent')),
@@ -257,6 +257,22 @@ create table if not exists public.patient_records (
   created_at timestamptz not null default now()
 );
 create index if not exists patient_records_patient_idx on public.patient_records (patient_id, created_at desc);
+-- Databases set up before medicine checks existed: widen the allowed kinds.
+alter table public.patient_records drop constraint if exists patient_records_kind_check;
+alter table public.patient_records add constraint patient_records_kind_check
+  check (kind in ('report', 'vitals', 'risk', 'diet_plan', 'med_check'));
+
+-- The patient's current medicines and supplements ("My medicines"); her doctor can read them.
+create table if not exists public.patient_medications (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null check (char_length(btrim(name)) between 1 and 200),
+  dose text check (char_length(dose) <= 100),
+  frequency text check (char_length(frequency) <= 100),
+  source text not null default 'manual' check (source in ('manual', 'prescription')),
+  created_at timestamptz not null default now()
+);
+create index if not exists patient_medications_patient_idx on public.patient_medications (patient_id, created_at);
 create index if not exists patient_records_requested_idx on public.patient_records (patient_id)
   where review_status = 'requested';
 
@@ -386,6 +402,7 @@ alter table public.care_links enable row level security;
 alter table public.patient_records enable row level security;
 alter table public.care_messages enable row level security;
 alter table public.diet_instructions enable row level security;
+alter table public.patient_medications enable row level security;
 
 drop policy if exists "doctor_profiles_read" on public.doctor_profiles;
 drop policy if exists "doctor_profiles_update_own" on public.doctor_profiles;
@@ -398,6 +415,10 @@ drop policy if exists "patient_records_insert_own" on public.patient_records;
 drop policy if exists "patient_records_delete_own" on public.patient_records;
 drop policy if exists "care_messages_read" on public.care_messages;
 drop policy if exists "diet_instructions_read" on public.diet_instructions;
+drop policy if exists "patient_medications_read" on public.patient_medications;
+drop policy if exists "patient_medications_insert_own" on public.patient_medications;
+drop policy if exists "patient_medications_update_own" on public.patient_medications;
+drop policy if exists "patient_medications_delete_own" on public.patient_medications;
 
 -- Any signed-in user can browse the doctor directory. Doctors edit only their own profile.
 create policy "doctor_profiles_read" on public.doctor_profiles
@@ -430,6 +451,16 @@ create policy "care_messages_read" on public.care_messages
 
 create policy "diet_instructions_read" on public.diet_instructions
   for select to authenticated using (public.can_access_patient(patient_id));
+
+-- A patient manages her medicine list; her current doctor can read it.
+create policy "patient_medications_read" on public.patient_medications
+  for select to authenticated using (public.can_access_patient(patient_id));
+create policy "patient_medications_insert_own" on public.patient_medications
+  for insert to authenticated with check (patient_id = auth.uid() and not public.is_doctor());
+create policy "patient_medications_update_own" on public.patient_medications
+  for update to authenticated using (patient_id = auth.uid()) with check (patient_id = auth.uid());
+create policy "patient_medications_delete_own" on public.patient_medications
+  for delete to authenticated using (patient_id = auth.uid());
 
 -- ---------- Functions the apps call ----------
 

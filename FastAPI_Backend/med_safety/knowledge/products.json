@@ -1,0 +1,1035 @@
+{
+ "_about": "Brand names (mostly Indian market) mapped to their ingredients, so 'Dolo 650' or 'Shelcal' on a prescription resolves to paracetamol or calcium + vitamin D3. Add brands freely; ingredient ids must exist in ingredients.json. dose_mg is used only to tell low-dose aspirin apart.",
+ "products": [
+  {
+   "name": "Dolo 650",
+   "aliases": [
+    "dolo",
+    "dolo 650",
+    "dolo-650"
+   ],
+   "ingredients": [
+    "paracetamol"
+   ]
+  },
+  {
+   "name": "Crocin",
+   "aliases": [
+    "crocin",
+    "crocin advance",
+    "calpol",
+    "pacimol",
+    "p 650",
+    "paracip",
+    "metacin",
+    "tylenol",
+    "panadol"
+   ],
+   "ingredients": [
+    "paracetamol"
+   ]
+  },
+  {
+   "name": "Combiflam",
+   "aliases": [
+    "combiflam",
+    "ibugesic plus"
+   ],
+   "ingredients": [
+    "ibuprofen",
+    "paracetamol"
+   ]
+  },
+  {
+   "name": "Brufen",
+   "aliases": [
+    "brufen",
+    "ibugesic",
+    "advil",
+    "nurofen"
+   ],
+   "ingredients": [
+    "ibuprofen"
+   ]
+  },
+  {
+   "name": "Voveran",
+   "aliases": [
+    "voveran",
+    "voltaren",
+    "dynapar",
+    "reactin",
+    "zerodol",
+    "hifenac"
+   ],
+   "ingredients": [
+    "diclofenac"
+   ]
+  },
+  {
+   "name": "Meftal Spas",
+   "aliases": [
+    "meftal spas",
+    "meftal-spas",
+    "meftalspas"
+   ],
+   "ingredients": [
+    "mefenamic_acid",
+    "dicyclomine"
+   ]
+  },
+  {
+   "name": "Meftal",
+   "aliases": [
+    "meftal",
+    "meftal forte",
+    "ponstan"
+   ],
+   "ingredients": [
+    "mefenamic_acid"
+   ]
+  },
+  {
+   "name": "Cyclopam",
+   "aliases": [
+    "cyclopam"
+   ],
+   "ingredients": [
+    "dicyclomine",
+    "paracetamol"
+   ]
+  },
+  {
+   "name": "Naprosyn",
+   "aliases": [
+    "naprosyn",
+    "naxdom"
+   ],
+   "ingredients": [
+    "naproxen"
+   ]
+  },
+  {
+   "name": "Ecosprin 75",
+   "aliases": [
+    "ecosprin 75",
+    "ecosprin",
+    "loprin",
+    "aspirin 75",
+    "disprin 75"
+   ],
+   "ingredients": [
+    "aspirin"
+   ],
+   "dose_mg": 75
+  },
+  {
+   "name": "Ecosprin 150",
+   "aliases": [
+    "ecosprin 150",
+    "aspirin 150",
+    "loprin 150"
+   ],
+   "ingredients": [
+    "aspirin"
+   ],
+   "dose_mg": 150
+  },
+  {
+   "name": "Disprin",
+   "aliases": [
+    "disprin"
+   ],
+   "ingredients": [
+    "aspirin"
+   ],
+   "dose_mg": 350
+  },
+  {
+   "name": "Ultracet",
+   "aliases": [
+    "ultracet",
+    "tramacip"
+   ],
+   "ingredients": [
+    "tramadol",
+    "paracetamol"
+   ]
+  },
+  {
+   "name": "Tramazac",
+   "aliases": [
+    "tramazac",
+    "contramal",
+    "ultram"
+   ],
+   "ingredients": [
+    "tramadol"
+   ]
+  },
+  {
+   "name": "Shelcal",
+   "aliases": [
+    "shelcal",
+    "shelcal 500",
+    "shelcal hd",
+    "shelcal os",
+    "calcimax",
+    "cipcal",
+    "gemcal",
+    "calcitas",
+    "ccm",
+    "calcium + d3",
+    "calcium d3"
+   ],
+   "ingredients": [
+    "calcium",
+    "vitamin_d"
+   ]
+  },
+  {
+   "name": "Orofer XT",
+   "aliases": [
+    "orofer xt",
+    "orofer",
+    "orofer-xt",
+    "fericip xt",
+    "ferium xt",
+    "hemfer xt"
+   ],
+   "ingredients": [
+    "iron",
+    "folic_acid"
+   ]
+  },
+  {
+   "name": "Livogen",
+   "aliases": [
+    "livogen",
+    "fefol",
+    "autrin",
+    "feronia xt",
+    "ferrochel"
+   ],
+   "ingredients": [
+    "iron",
+    "folic_acid"
+   ]
+  },
+  {
+   "name": "Dexorange",
+   "aliases": [
+    "dexorange",
+    "dexorange syrup",
+    "raricap",
+    "tonoferon"
+   ],
+   "ingredients": [
+    "iron",
+    "vitamin_b12",
+    "folic_acid"
+   ]
+  },
+  {
+   "name": "Folvite",
+   "aliases": [
+    "folvite",
+    "folinext"
+   ],
+   "ingredients": [
+    "folic_acid"
+   ]
+  },
+  {
+   "name": "Uprise D3",
+   "aliases": [
+    "uprise d3",
+    "calcirol",
+    "d rise",
+    "d-rise",
+    "tayo 60k",
+    "arachitol"
+   ],
+   "ingredients": [
+    "vitamin_d"
+   ]
+  },
+  {
+   "name": "Neurobion Forte",
+   "aliases": [
+    "neurobion",
+    "neurobion forte",
+    "becosules",
+    "becosules z",
+    "polybion"
+   ],
+   "ingredients": [
+    "vitamin_b_complex",
+    "vitamin_b12",
+    "vitamin_c"
+   ]
+  },
+  {
+   "name": "Methylcobalamin",
+   "aliases": [
+    "nurokind",
+    "mecobal",
+    "methycobal"
+   ],
+   "ingredients": [
+    "vitamin_b12"
+   ]
+  },
+  {
+   "name": "Prenatal multivitamin",
+   "aliases": [
+    "pregnacare",
+    "maxirich",
+    "supradyn",
+    "revital",
+    "zincovit"
+   ],
+   "ingredients": [
+    "multivitamin_prenatal"
+   ]
+  },
+  {
+   "name": "DHA supplement",
+   "aliases": [
+    "dha",
+    "maxepa",
+    "omega 3 capsules",
+    "seacod"
+   ],
+   "ingredients": [
+    "dha"
+   ]
+  },
+  {
+   "name": "Doxinate",
+   "aliases": [
+    "doxinate",
+    "doxinate plus",
+    "pregnidoxin",
+    "diclegis",
+    "xonvea",
+    "nausidox"
+   ],
+   "ingredients": [
+    "doxylamine",
+    "pyridoxine"
+   ]
+  },
+  {
+   "name": "Emeset",
+   "aliases": [
+    "emeset",
+    "ondem",
+    "vomikind",
+    "zofer",
+    "zofran",
+    "emeset md"
+   ],
+   "ingredients": [
+    "ondansetron"
+   ]
+  },
+  {
+   "name": "Perinorm",
+   "aliases": [
+    "perinorm",
+    "reglan",
+    "maxolon"
+   ],
+   "ingredients": [
+    "metoclopramide"
+   ]
+  },
+  {
+   "name": "Domstal",
+   "aliases": [
+    "domstal",
+    "motilium",
+    "vomistop"
+   ],
+   "ingredients": [
+    "domperidone"
+   ]
+  },
+  {
+   "name": "Gelusil",
+   "aliases": [
+    "gelusil",
+    "digene",
+    "mucaine",
+    "gaviscon",
+    "polycrol",
+    "eno"
+   ],
+   "ingredients": [
+    "antacid"
+   ]
+  },
+  {
+   "name": "Pan 40",
+   "aliases": [
+    "pan 40",
+    "pan",
+    "pantocid",
+    "pantop",
+    "protonix",
+    "rablet",
+    "razo"
+   ],
+   "ingredients": [
+    "pantoprazole"
+   ]
+  },
+  {
+   "name": "Pan D",
+   "aliases": [
+    "pan d",
+    "pan-d",
+    "pantocid dsr",
+    "rablet d"
+   ],
+   "ingredients": [
+    "pantoprazole",
+    "domperidone"
+   ]
+  },
+  {
+   "name": "Omez",
+   "aliases": [
+    "omez",
+    "omeprazole 20",
+    "prilosec",
+    "nexium",
+    "nexpro"
+   ],
+   "ingredients": [
+    "omeprazole"
+   ]
+  },
+  {
+   "name": "Rantac",
+   "aliases": [
+    "rantac",
+    "aciloc",
+    "zinetac"
+   ],
+   "ingredients": [
+    "ranitidine"
+   ]
+  },
+  {
+   "name": "Famocid",
+   "aliases": [
+    "famocid",
+    "pepcid",
+    "topcid"
+   ],
+   "ingredients": [
+    "famotidine"
+   ]
+  },
+  {
+   "name": "Duphalac",
+   "aliases": [
+    "duphalac",
+    "cremaffin",
+    "looz",
+    "sat isabgol",
+    "sat-isabgol",
+    "naturolax"
+   ],
+   "ingredients": [
+    "lactulose"
+   ]
+  },
+  {
+   "name": "Eldoper",
+   "aliases": [
+    "eldoper",
+    "imodium",
+    "lopamide"
+   ],
+   "ingredients": [
+    "loperamide"
+   ]
+  },
+  {
+   "name": "Thyronorm",
+   "aliases": [
+    "thyronorm",
+    "eltroxin",
+    "thyrox",
+    "synthroid",
+    "lethyrox",
+    "thyrofit"
+   ],
+   "ingredients": [
+    "levothyroxine"
+   ]
+  },
+  {
+   "name": "Glycomet",
+   "aliases": [
+    "glycomet",
+    "glucophage",
+    "obimet sr",
+    "gluformin"
+   ],
+   "ingredients": [
+    "metformin"
+   ]
+  },
+  {
+   "name": "Daonil",
+   "aliases": [
+    "daonil",
+    "glynase"
+   ],
+   "ingredients": [
+    "glibenclamide"
+   ]
+  },
+  {
+   "name": "Amaryl",
+   "aliases": [
+    "amaryl",
+    "glimy",
+    "diamicron"
+   ],
+   "ingredients": [
+    "glimepiride"
+   ]
+  },
+  {
+   "name": "Labebet",
+   "aliases": [
+    "labebet",
+    "lobet",
+    "trandate"
+   ],
+   "ingredients": [
+    "labetalol"
+   ]
+  },
+  {
+   "name": "Nicardia",
+   "aliases": [
+    "nicardia",
+    "depin",
+    "calcigard",
+    "adalat"
+   ],
+   "ingredients": [
+    "nifedipine"
+   ]
+  },
+  {
+   "name": "Aldomet",
+   "aliases": [
+    "aldomet",
+    "alphadopa",
+    "dopegyt"
+   ],
+   "ingredients": [
+    "methyldopa"
+   ]
+  },
+  {
+   "name": "Aten",
+   "aliases": [
+    "aten",
+    "tenormin",
+    "metolar",
+    "met xl",
+    "ciplar"
+   ],
+   "ingredients": [
+    "atenolol"
+   ]
+  },
+  {
+   "name": "Envas",
+   "aliases": [
+    "envas",
+    "enam",
+    "cardace",
+    "listril",
+    "coversyl"
+   ],
+   "ingredients": [
+    "ace_inhibitor"
+   ]
+  },
+  {
+   "name": "Telma",
+   "aliases": [
+    "telma",
+    "telmikind",
+    "losar",
+    "repace",
+    "olmezest",
+    "cozaar"
+   ],
+   "ingredients": [
+    "arb"
+   ]
+  },
+  {
+   "name": "Atorva",
+   "aliases": [
+    "atorva",
+    "lipitor",
+    "storvas",
+    "rosuvas",
+    "crestor",
+    "rozavel"
+   ],
+   "ingredients": [
+    "statin"
+   ]
+  },
+  {
+   "name": "Clexane",
+   "aliases": [
+    "clexane",
+    "lovenox",
+    "enoxarin"
+   ],
+   "ingredients": [
+    "enoxaparin"
+   ]
+  },
+  {
+   "name": "Warf",
+   "aliases": [
+    "warf",
+    "coumadin",
+    "acitrom"
+   ],
+   "ingredients": [
+    "warfarin"
+   ]
+  },
+  {
+   "name": "Susten",
+   "aliases": [
+    "susten",
+    "susten 200",
+    "susten sr",
+    "duphaston",
+    "gestofit",
+    "utrogestan",
+    "crinone"
+   ],
+   "ingredients": [
+    "progesterone"
+   ]
+  },
+  {
+   "name": "Mox",
+   "aliases": [
+    "mox",
+    "novamox",
+    "amoxil",
+    "augmentin",
+    "clavam",
+    "moxclav",
+    "megaclav"
+   ],
+   "ingredients": [
+    "amoxicillin"
+   ]
+  },
+  {
+   "name": "Taxim-O",
+   "aliases": [
+    "taxim o",
+    "taxim-o",
+    "zifi",
+    "ceftum",
+    "cefakind",
+    "sporidex",
+    "cefadroxil"
+   ],
+   "ingredients": [
+    "cephalosporin"
+   ]
+  },
+  {
+   "name": "Azee",
+   "aliases": [
+    "azee",
+    "azithral",
+    "azax",
+    "zithromax",
+    "althrocin"
+   ],
+   "ingredients": [
+    "azithromycin"
+   ]
+  },
+  {
+   "name": "Dalacin C",
+   "aliases": [
+    "dalacin",
+    "dalacin c",
+    "clindac"
+   ],
+   "ingredients": [
+    "clindamycin"
+   ]
+  },
+  {
+   "name": "Flagyl",
+   "aliases": [
+    "flagyl",
+    "metrogyl",
+    "aristogyl",
+    "tinidazole"
+   ],
+   "ingredients": [
+    "metronidazole"
+   ]
+  },
+  {
+   "name": "Niftran",
+   "aliases": [
+    "niftran",
+    "martifur",
+    "macrobid",
+    "furadantin"
+   ],
+   "ingredients": [
+    "nitrofurantoin"
+   ]
+  },
+  {
+   "name": "Septran",
+   "aliases": [
+    "septran",
+    "bactrim",
+    "ciplin"
+   ],
+   "ingredients": [
+    "cotrimoxazole"
+   ]
+  },
+  {
+   "name": "Doxy-1",
+   "aliases": [
+    "doxy 1",
+    "doxy-1",
+    "doxt",
+    "doxt sl",
+    "minoz"
+   ],
+   "ingredients": [
+    "tetracycline"
+   ]
+  },
+  {
+   "name": "Ciplox",
+   "aliases": [
+    "ciplox",
+    "cifran",
+    "ciprobid",
+    "levoflox",
+    "tavanic",
+    "zanocin",
+    "norflox"
+   ],
+   "ingredients": [
+    "fluoroquinolone"
+   ]
+  },
+  {
+   "name": "Forcan",
+   "aliases": [
+    "forcan",
+    "zocon",
+    "diflucan",
+    "syscan",
+    "flucos"
+   ],
+   "ingredients": [
+    "fluconazole"
+   ]
+  },
+  {
+   "name": "Candid",
+   "aliases": [
+    "candid",
+    "candid v",
+    "candid-v",
+    "canesten",
+    "candid b"
+   ],
+   "ingredients": [
+    "clotrimazole"
+   ]
+  },
+  {
+   "name": "HCQS",
+   "aliases": [
+    "hcqs",
+    "plaquenil",
+    "hcq"
+   ],
+   "ingredients": [
+    "hydroxychloroquine"
+   ]
+  },
+  {
+   "name": "Cetzine",
+   "aliases": [
+    "cetzine",
+    "okacet",
+    "alerid",
+    "zyrtec",
+    "levocet",
+    "xyzal",
+    "lorfast",
+    "allegra",
+    "claritin"
+   ],
+   "ingredients": [
+    "cetirizine"
+   ]
+  },
+  {
+   "name": "Avil",
+   "aliases": [
+    "avil",
+    "piriton",
+    "benadryl",
+    "phenergan",
+    "atarax"
+   ],
+   "ingredients": [
+    "chlorphenamine"
+   ]
+  },
+  {
+   "name": "Montair",
+   "aliases": [
+    "montair",
+    "montek",
+    "singulair",
+    "romilast"
+   ],
+   "ingredients": [
+    "montelukast"
+   ]
+  },
+  {
+   "name": "Montair LC",
+   "aliases": [
+    "montair lc",
+    "montek lc",
+    "montelukast levocetirizine"
+   ],
+   "ingredients": [
+    "montelukast",
+    "cetirizine"
+   ]
+  },
+  {
+   "name": "Asthalin",
+   "aliases": [
+    "asthalin",
+    "ventolin",
+    "levolin",
+    "salbair"
+   ],
+   "ingredients": [
+    "salbutamol"
+   ]
+  },
+  {
+   "name": "Budecort",
+   "aliases": [
+    "budecort",
+    "foracort",
+    "seroflo",
+    "pulmicort",
+    "symbicort"
+   ],
+   "ingredients": [
+    "budesonide"
+   ]
+  },
+  {
+   "name": "Wysolone",
+   "aliases": [
+    "wysolone",
+    "omnacortil",
+    "medrol",
+    "dexona"
+   ],
+   "ingredients": [
+    "prednisolone"
+   ]
+  },
+  {
+   "name": "Serta",
+   "aliases": [
+    "serta",
+    "zoloft",
+    "daxid",
+    "nexito",
+    "cipralex",
+    "fludac",
+    "prozac"
+   ],
+   "ingredients": [
+    "sertraline"
+   ]
+  },
+  {
+   "name": "Pari",
+   "aliases": [
+    "pari",
+    "paxil",
+    "paxidep"
+   ],
+   "ingredients": [
+    "paroxetine"
+   ]
+  },
+  {
+   "name": "Valparin",
+   "aliases": [
+    "valparin",
+    "encorate",
+    "depakote",
+    "epilim",
+    "valprol"
+   ],
+   "ingredients": [
+    "valproate"
+   ]
+  },
+  {
+   "name": "Tegretol",
+   "aliases": [
+    "tegretol",
+    "mazetol",
+    "eptoin",
+    "dilantin",
+    "oxetol",
+    "gardenal"
+   ],
+   "ingredients": [
+    "carbamazepine"
+   ]
+  },
+  {
+   "name": "Levipil",
+   "aliases": [
+    "levipil",
+    "keppra",
+    "levera",
+    "lamitor",
+    "lamictal"
+   ],
+   "ingredients": [
+    "lamotrigine"
+   ]
+  },
+  {
+   "name": "Licab",
+   "aliases": [
+    "licab",
+    "lithosun"
+   ],
+   "ingredients": [
+    "lithium"
+   ]
+  },
+  {
+   "name": "Isotroin",
+   "aliases": [
+    "isotroin",
+    "accutane",
+    "sotret",
+    "tretiva"
+   ],
+   "ingredients": [
+    "isotretinoin"
+   ]
+  },
+  {
+   "name": "Retino-A",
+   "aliases": [
+    "retino a",
+    "retino-a",
+    "adaferin",
+    "deriva"
+   ],
+   "ingredients": [
+    "tretinoin_topical"
+   ]
+  },
+  {
+   "name": "Folitrax",
+   "aliases": [
+    "folitrax",
+    "imutrex",
+    "methorex"
+   ],
+   "ingredients": [
+    "methotrexate"
+   ]
+  },
+  {
+   "name": "Cytotec",
+   "aliases": [
+    "cytotec",
+    "misoprost",
+    "cytolog",
+    "mifegest"
+   ],
+   "ingredients": [
+    "misoprostol"
+   ]
+  },
+  {
+   "name": "Cellcept",
+   "aliases": [
+    "cellcept",
+    "mycept",
+    "myfortic"
+   ],
+   "ingredients": [
+    "mycophenolate"
+   ]
+  },
+  {
+   "name": "Finpecia",
+   "aliases": [
+    "finpecia",
+    "propecia",
+    "proscar",
+    "avodart"
+   ],
+   "ingredients": [
+    "finasteride"
+   ]
+  },
+  {
+   "name": "Imuran",
+   "aliases": [
+    "imuran",
+    "azoran"
+   ],
+   "ingredients": [
+    "azathioprine"
+   ]
+  }
+ ]
+}

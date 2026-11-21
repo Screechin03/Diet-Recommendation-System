@@ -26,6 +26,12 @@ const FEATURES: Array<{ href: Href; icon: ComponentProps<typeof Ionicons>["name"
     text: "Heart rate, oxygen, temperature and ECG from the MamaCare device, with a report for your doctor.",
   },
   {
+    href: "/medicines",
+    icon: "medkit-outline",
+    title: "Medicine safety",
+    text: "Is a medicine or supplement OK for your month of pregnancy? Clashes and a daily timing plan.",
+  },
+  {
     href: "/report",
     icon: "document-text-outline",
     title: "Prescription reader",

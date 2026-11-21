@@ -1,0 +1,312 @@
+{
+ "_about": "Hand-checked interactions. 'a'/'b' are ingredient ids or 'class:<name>' (classes from ingredients.json). severity: avoid (don't combine without your doctor), caution (combine only if your doctor knows), timing (fine together but take apart; gap_hours used by the daily plan). Duplicate ingredients and duplicate drug classes are detected automatically.",
+ "interactions": [
+  {
+   "a": "aspirin",
+   "b": "class:nsaid",
+   "severity": "caution",
+   "effect": "Ibuprofen and other anti-inflammatory painkillers can stop low-dose aspirin from protecting you, and together they raise the risk of bleeding.",
+   "advice": "Use paracetamol for pain instead, unless your doctor says otherwise.",
+   "source": "FDA science paper on ibuprofen and aspirin; ACOG"
+  },
+  {
+   "a": "iron",
+   "b": "calcium",
+   "severity": "timing",
+   "gap_hours": 2,
+   "effect": "Calcium reduces how much iron your body absorbs.",
+   "advice": "Take them at least 2 hours apart.",
+   "source": "WHO; BNF"
+  },
+  {
+   "a": "iron",
+   "b": "class:antacid",
+   "severity": "timing",
+   "gap_hours": 2,
+   "effect": "Antacids reduce iron absorption.",
+   "advice": "Take iron at least 2 hours before or after an antacid.",
+   "source": "BNF"
+  },
+  {
+   "a": "iron",
+   "b": "class:ppi",
+   "severity": "caution",
+   "effect": "Acid-reducing medicines can lower iron absorption over time.",
+   "advice": "Your doctor may check your iron levels.",
+   "source": "BNF"
+  },
+  {
+   "a": "iron",
+   "b": "levothyroxine",
+   "severity": "timing",
+   "gap_hours": 4,
+   "effect": "Iron binds thyroid medicine and stops it working fully.",
+   "advice": "Take them at least 4 hours apart.",
+   "source": "Levothyroxine FDA label; ATA"
+  },
+  {
+   "a": "calcium",
+   "b": "levothyroxine",
+   "severity": "timing",
+   "gap_hours": 4,
+   "effect": "Calcium stops thyroid medicine from being absorbed fully.",
+   "advice": "Take them at least 4 hours apart.",
+   "source": "Levothyroxine FDA label; ATA"
+  },
+  {
+   "a": "class:antacid",
+   "b": "levothyroxine",
+   "severity": "timing",
+   "gap_hours": 4,
+   "effect": "Antacids reduce absorption of thyroid medicine.",
+   "advice": "Take them at least 4 hours apart.",
+   "source": "Levothyroxine FDA label"
+  },
+  {
+   "a": "magnesium",
+   "b": "levothyroxine",
+   "severity": "timing",
+   "gap_hours": 4,
+   "effect": "Magnesium reduces absorption of thyroid medicine.",
+   "advice": "Take them at least 4 hours apart.",
+   "source": "Levothyroxine FDA label"
+  },
+  {
+   "a": "zinc",
+   "b": "levothyroxine",
+   "severity": "timing",
+   "gap_hours": 4,
+   "effect": "Minerals reduce absorption of thyroid medicine.",
+   "advice": "Take them at least 4 hours apart.",
+   "source": "Levothyroxine FDA label"
+  },
+  {
+   "a": "multivitamin_prenatal",
+   "b": "levothyroxine",
+   "severity": "timing",
+   "gap_hours": 4,
+   "effect": "Prenatal vitamins contain iron and calcium, which stop thyroid medicine being absorbed.",
+   "advice": "Take them at least 4 hours apart.",
+   "source": "ATA thyroid & pregnancy guidelines"
+  },
+  {
+   "a": "class:ppi",
+   "b": "levothyroxine",
+   "severity": "caution",
+   "effect": "Acid-reducing medicines can slightly reduce thyroid medicine absorption.",
+   "advice": "Your doctor may check your thyroid levels.",
+   "source": "Levothyroxine FDA label"
+  },
+  {
+   "a": "zinc",
+   "b": "iron",
+   "severity": "timing",
+   "gap_hours": 2,
+   "effect": "Zinc and iron compete for absorption.",
+   "advice": "Take them at least 2 hours apart.",
+   "source": "BNF"
+  },
+  {
+   "a": "iron",
+   "b": "class:tetracycline",
+   "severity": "timing",
+   "gap_hours": 3,
+   "effect": "Iron blocks absorption of tetracycline antibiotics.",
+   "advice": "Take them at least 3 hours apart.",
+   "source": "BNF"
+  },
+  {
+   "a": "calcium",
+   "b": "class:tetracycline",
+   "severity": "timing",
+   "gap_hours": 3,
+   "effect": "Calcium blocks absorption of tetracycline antibiotics.",
+   "advice": "Take them at least 3 hours apart.",
+   "source": "BNF"
+  },
+  {
+   "a": "class:antacid",
+   "b": "class:tetracycline",
+   "severity": "timing",
+   "gap_hours": 3,
+   "effect": "Antacids block absorption of tetracycline antibiotics.",
+   "advice": "Take them at least 3 hours apart.",
+   "source": "BNF"
+  },
+  {
+   "a": "iron",
+   "b": "class:fluoroquinolone",
+   "severity": "timing",
+   "gap_hours": 6,
+   "effect": "Iron blocks absorption of the antibiotic.",
+   "advice": "Take the antibiotic 2 hours before or 6 hours after iron.",
+   "source": "Ciprofloxacin FDA label"
+  },
+  {
+   "a": "calcium",
+   "b": "class:fluoroquinolone",
+   "severity": "timing",
+   "gap_hours": 6,
+   "effect": "Calcium blocks absorption of the antibiotic.",
+   "advice": "Take the antibiotic 2 hours before or 6 hours after calcium.",
+   "source": "Ciprofloxacin FDA label"
+  },
+  {
+   "a": "class:antacid",
+   "b": "class:fluoroquinolone",
+   "severity": "timing",
+   "gap_hours": 6,
+   "effect": "Antacids block absorption of the antibiotic.",
+   "advice": "Take the antibiotic 2 hours before or 6 hours after an antacid.",
+   "source": "Ciprofloxacin FDA label"
+  },
+  {
+   "a": "iron",
+   "b": "methyldopa",
+   "severity": "timing",
+   "gap_hours": 2,
+   "effect": "Iron reduces absorption of methyldopa, so blood pressure may rise.",
+   "advice": "Take them at least 2 hours apart.",
+   "source": "Methyldopa label; BNF"
+  },
+  {
+   "a": "class:nsaid",
+   "b": "enoxaparin",
+   "severity": "caution",
+   "effect": "Together they raise the risk of bleeding.",
+   "advice": "Use paracetamol for pain instead, unless your doctor says otherwise.",
+   "source": "Enoxaparin FDA label"
+  },
+  {
+   "a": "aspirin",
+   "b": "enoxaparin",
+   "severity": "caution",
+   "effect": "Together they raise the risk of bleeding.",
+   "advice": "Sometimes prescribed together on purpose. Make sure the same doctor knows you take both.",
+   "source": "Enoxaparin FDA label; RCOG"
+  },
+  {
+   "a": "class:nsaid",
+   "b": "warfarin",
+   "severity": "avoid",
+   "effect": "Together they greatly raise the risk of bleeding.",
+   "advice": "Don't combine without your doctor's advice.",
+   "source": "Warfarin FDA label"
+  },
+  {
+   "a": "class:ssri",
+   "b": "tramadol",
+   "severity": "avoid",
+   "effect": "Can cause serotonin syndrome and seizures.",
+   "advice": "Don't combine without your doctor's advice.",
+   "source": "Tramadol FDA label"
+  },
+  {
+   "a": "class:serotonergic",
+   "b": "ondansetron",
+   "severity": "caution",
+   "effect": "Small risk of serotonin syndrome.",
+   "advice": "Tell your doctor you take both.",
+   "source": "Ondansetron FDA label"
+  },
+  {
+   "a": "st_johns_wort",
+   "b": "class:ssri",
+   "severity": "avoid",
+   "effect": "Can cause serotonin syndrome.",
+   "advice": "Don't combine.",
+   "source": "NIH NCCIH"
+  },
+  {
+   "a": "st_johns_wort",
+   "b": "class:antiepileptic",
+   "severity": "avoid",
+   "effect": "Can make epilepsy medicines work less well.",
+   "advice": "Don't combine.",
+   "source": "NIH NCCIH"
+  },
+  {
+   "a": "class:qt",
+   "b": "class:qt",
+   "severity": "caution",
+   "effect": "Both can affect the heart rhythm (QT interval).",
+   "advice": "Tell your doctor you take both, especially if you have heart problems or faint.",
+   "source": "FDA labels (QT warnings)"
+  },
+  {
+   "a": "labetalol",
+   "b": "class:beta_agonist",
+   "severity": "caution",
+   "effect": "Labetalol can make asthma worse and reduce how well the reliever inhaler works.",
+   "advice": "Tell your doctor you have asthma.",
+   "source": "Labetalol FDA label"
+  },
+  {
+   "a": "atenolol",
+   "b": "class:beta_agonist",
+   "severity": "caution",
+   "effect": "Beta-blockers can make asthma worse and reduce how well the reliever inhaler works.",
+   "advice": "Tell your doctor you have asthma.",
+   "source": "BNF"
+  },
+  {
+   "a": "folic_acid",
+   "b": "carbamazepine",
+   "severity": "caution",
+   "effect": "Phenytoin and similar medicines lower folate levels, and folic acid can change their blood levels.",
+   "advice": "Higher-dose folic acid is usually prescribed; your doctor will monitor levels.",
+   "source": "NICE epilepsy guideline"
+  },
+  {
+   "a": "class:folate_antagonist",
+   "b": "folic_acid",
+   "severity": "caution",
+   "effect": "This medicine works against folate, which matters in early pregnancy.",
+   "advice": "Make sure your doctor knows you are pregnant.",
+   "source": "BNF"
+  },
+  {
+   "a": "class:sedating",
+   "b": "class:sedating",
+   "severity": "caution",
+   "effect": "Both cause drowsiness; together the effect is stronger.",
+   "advice": "Avoid driving; ask your doctor if you need both.",
+   "source": "BNF"
+  },
+  {
+   "a": "class:sedating",
+   "b": "class:opioid",
+   "severity": "caution",
+   "effect": "Together they cause more drowsiness and slower breathing.",
+   "advice": "Ask your doctor if you need both.",
+   "source": "FDA boxed warning (opioids with CNS depressants)"
+  },
+  {
+   "a": "class:enzyme_inducer",
+   "b": "class:hormone",
+   "severity": "caution",
+   "effect": "Can make hormone treatments work less well.",
+   "advice": "Tell your doctor you take both.",
+   "source": "BNF"
+  },
+  {
+   "a": "caffeine",
+   "b": "iron",
+   "severity": "timing",
+   "gap_hours": 1,
+   "effect": "Tea and coffee reduce iron absorption.",
+   "advice": "Have tea or coffee at least 1 hour away from iron.",
+   "source": "WHO"
+  }
+ ],
+ "duplicate_classes": {
+  "nsaid": "Two anti-inflammatory painkillers together raise the risk of side effects without more benefit.",
+  "ppi": "Two acid-reducing medicines of the same kind are rarely needed together.",
+  "h2_blocker": "Two acid-reducing medicines of the same kind are rarely needed together.",
+  "ssri": "Two antidepressants of the same kind can cause serotonin syndrome.",
+  "antiepileptic": "Check that both epilepsy medicines are meant to be taken together.",
+  "raas": "Two medicines acting on the same blood pressure pathway are not used together.",
+  "statin": "Two cholesterol medicines of the same kind are not used together.",
+  "anticoagulant": "Two blood thinners together greatly raise the risk of bleeding."
+ }
+}

@@ -49,6 +49,9 @@ Render → **New → Blueprint** → this repo. It reads `render.yaml` (Docker, 
 - `POST /vitals/analyze_file`: analyse an SD-card session file (multipart: `file`)
 - `POST /vitals/report`: PDF report from an analysis (JSON: `analysis`, optional `patient`)
 - `GET /vitals/demo?scenario=…`: simulated session, marked as sample data
+- `GET /meds/search?q=`: medicine name autocomplete (brand or generic)
+- `POST /meds/check`: pregnancy safety, interactions and daily timing plan (JSON: `medicines: [{name, dose?, frequency?}]`, `pregnancy_month`)
+- `GET /meds/model`: status and test metrics of the drug-interaction graph model (if exported)
 - `GET /endpoints`: endpoint list; `GET /docs`: Swagger UI
 
 Invalid input returns **422** with a readable `detail` string.
@@ -80,6 +83,24 @@ Code in `vitals/`; data format in `Docs/DEVICE_PROTOCOL.md`.
   - a beat-shape signal-quality check, so noise is reported as "not analysable" instead of producing a made-up heart rate.
 - **`report_pdf.py`:** builds the patient PDF, with the ECG on standard 25 mm/s paper and a "SAMPLE DATA" watermark for demos.
 - **`simulate.py`:** produces synthetic sessions (`python -m vitals.simulate --scenario irregular`).
+
+## Medicine safety checker (`med_safety/`)
+
+- **`knowledge/`** holds the hand-checked data:
+  - pregnancy tiers per trimester for common medicines and supplements, each with a source;
+  - Indian brand names mapped to their ingredients;
+  - interaction and timing rules.
+
+  The JSON files are easy to edit. Please have a clinician review them before release.
+- **`catalog.py`** matches prescription text, such as "Tab. Thyronorm 50 mcg OD", brands, combinations and typos.
+- **`checker.py`** produces:
+  - a tier for each medicine for the chosen month;
+  - clashes and duplicate ingredients;
+  - a "don't stop suddenly" flag;
+  - a daily timing plan (`schedule.py`).
+- **`model_layer.py`** serves the graph model exported by `ml/drug_safety` (numpy only).
+  - Drug-label tiers fill gaps in the hand-checked list.
+  - Model predictions are only ever shown as unverified signals, and they never set a medicine's tier.
 
 ## Risk model
 

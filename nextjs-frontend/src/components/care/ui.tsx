@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode, SVGProps } from "react";
-import { AlertIcon, CheckIcon, FileIcon, InfoIcon, SparkIcon, StethoscopeIcon } from "@/components/report/icons";
+import { AlertIcon, CheckIcon, FileIcon, InfoIcon, PillIcon, SparkIcon, StethoscopeIcon } from "@/components/report/icons";
 import {
   initials,
   KIND_COPY,
@@ -219,11 +219,12 @@ const KIND_STYLE: Record<RecordKind, string> = {
   vitals: "bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300",
   risk: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
   diet_plan: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  med_check: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
 };
 
 export function KindIcon({ kind, size = 36 }: { kind: RecordKind; size?: number }) {
   const icon =
-    kind === "report" ? <FileIcon size={size * 0.5} /> : kind === "vitals" ? <HeartPulseIcon size={size * 0.5} /> : kind === "risk" ? <ShieldIcon size={size * 0.5} /> : <SparkIcon size={size * 0.5} />;
+    kind === "report" ? <FileIcon size={size * 0.5} /> : kind === "vitals" ? <HeartPulseIcon size={size * 0.5} /> : kind === "risk" ? <ShieldIcon size={size * 0.5} /> : kind === "med_check" ? <PillIcon size={size * 0.5} /> : <SparkIcon size={size * 0.5} />;
   return (
     <span className={`inline-flex shrink-0 items-center justify-center rounded-xl ${KIND_STYLE[kind]}`} style={{ width: size, height: size }} aria-label={KIND_COPY[kind].label}>
       {icon}

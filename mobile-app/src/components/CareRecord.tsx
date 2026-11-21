@@ -10,6 +10,8 @@ import { Pill, Thread, toneColors, type Tone } from "./Care";
 import { DietPlanCard, ReportCard } from "./ReportViews";
 import { VitalsResult } from "./VitalsViews";
 import { RecipeCard } from "./RecipeCard";
+import { MedCheckView } from "./Meds";
+import type { MedCheckResult } from "@/lib/meds";
 import { Refined } from "./Refined";
 import {
   careErrorMessage,
@@ -42,6 +44,10 @@ export function RecordContent({ record }: { record: HealthRecord }) {
       return <RiskRecord data={record.data as unknown as RiskRecordData} />;
     case "diet_plan":
       return <DietPlanRecord data={record.data as unknown as DietPlanRecordData} />;
+    case "med_check": {
+      const r = (record.data as { result?: MedCheckResult }).result;
+      return r?.medicines ? <MedCheckView result={r} /> : <InfoBox>This record can't be displayed.</InfoBox>;
+    }
     default:
       return <InfoBox>This record can't be displayed.</InfoBox>;
   }
@@ -82,6 +88,7 @@ function ReportRecord({ record }: { record: HealthRecord }) {
       ) : null}
       {error ? <Text style={{ color: t.danger }}>{error}</Text> : null}
       {!isEmptyReport(report) && report ? <ReportCard report={report} /> : null}
+      {data.med_check?.medicines ? <MedCheckView result={data.med_check} /> : null}
       {plan ? <DietPlanCard plan={plan} /> : null}
       {data.ocr?.text ? (
         <Card>
