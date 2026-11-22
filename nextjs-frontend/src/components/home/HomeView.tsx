@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { useCareBadge, useCareLinks } from "@/components/care/hooks";
-import { updatePregnancyMonth } from "@/lib/care";
+import { useCareBadge, useCareLinks, useLiveData } from "@/components/care/hooks";
+import { listRecordsOfKind, updatePregnancyMonth } from "@/lib/care";
 import { getNews, type NewsCard } from "@/lib/insights";
-import { ActionTile, DoctorPanel, FocusPanel, Icon, JourneyCard, NewsPanel, Skeleton, ToolList, greeting } from "./HomeWidgets";
+import { ActionTile, DoctorPanel, FocusPanel, Icon, JourneyCard, NewsPanel, Skeleton, ToolList, VitalsReminder, greeting } from "./HomeWidgets";
 
 const ACTIONS = [
   { href: "/prescription-reader", icon: <Icon.scan />, title: "Read a prescription", text: "Photo in, plain-language summary out." },
@@ -54,6 +54,19 @@ function Dashboard() {
   const unread = useCareBadge();
   const news = useNews();
   const [override, setOverride] = useState<number | null>(null);
+  const [lastVitals, setLastVitals] = useState<{ uid: string; at: string | null; hours: number } | null>(null);
+  const loadVitals = useCallback(async () => {
+    if (!user) return;
+    try {
+      const rows = await listRecordsOfKind(user.id, "vitals", 5);
+      const at = rows.find((r) => !r.is_sample)?.created_at ?? null;
+      setLastVitals({ uid: user.id, at, hours: at ? (Date.now() - new Date(at).getTime()) / 3_600_000 : Infinity });
+    } catch {
+      // the reminder is optional
+    }
+  }, [user]);
+  useLiveData(loadVitals, 60_000);
+  const vitalsAt = user && lastVitals?.uid === user.id ? lastVitals.at : undefined;
   const month = override ?? account?.patient?.pregnancy_month ?? null;
 
   const changeMonth = (m: number) => {
@@ -84,6 +97,8 @@ function Dashboard() {
         <JourneyCard month={month} onChangeMonth={changeMonth} className="lg:col-span-2" />
         <DoctorPanel link={active} loading={loading} unread={unread} />
       </div>
+
+      <VitalsReminder lastAt={vitalsAt} hours={lastVitals?.hours ?? Infinity} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {ACTIONS.map((a) => (

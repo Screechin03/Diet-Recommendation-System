@@ -283,6 +283,38 @@ export function NewsWidget({ news, loading }: { news: NewsCard | null; loading: 
   );
 }
 
+/** Daily vitals check-in: calm when recent, a clear prompt once 24 hours have passed. `lastAt` undefined = loading. */
+export function VitalsReminder({ lastAt }: { lastAt: string | null | undefined }) {
+  const t = useTheme();
+  if (lastAt === undefined) return null;
+  const hours = lastAt ? (Date.now() - new Date(lastAt).getTime()) / 3_600_000 : Infinity;
+  const due = hours >= 24;
+  if (!due) {
+    return (
+      <Pressable onPress={() => router.navigate("/vitals")} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 4 }}>
+        <Ionicons name="checkmark-circle" size={18} color={t.success} />
+        <Text style={{ color: t.muted, fontSize: 13.5, flex: 1 }}>
+          Vitals recorded {timeAgo(lastAt)} · next check-in in {Math.max(1, Math.round(24 - hours))} h
+        </Text>
+      </Pressable>
+    );
+  }
+  return (
+    <Card tone="tinted" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+      <IconCircle name="pulse" tone="solid" />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[type.headline, { color: t.text }]}>Time for today’s vitals</Text>
+        <Text style={{ color: t.muted, fontSize: 13.5, lineHeight: 19 }}>
+          {lastAt ? `Last recorded ${timeAgo(lastAt)}.` : "No readings yet."} Fresh readings keep your meal plan and your doctor up to date.
+        </Text>
+      </View>
+      <Pressable onPress={() => router.navigate("/vitals")} style={[styles.smallBtn, { backgroundColor: t.primary }]} accessibilityRole="button">
+        <Text style={{ color: t.onPrimary, fontWeight: "700", fontSize: 13 }}>Record</Text>
+      </Pressable>
+    </Card>
+  );
+}
+
 /** Grouped list of secondary tools, iOS-settings style. */
 export function ToolList({ items }: { items: Array<{ icon: IconName; title: string; text: string; href: Href }> }) {
   const t = useTheme();

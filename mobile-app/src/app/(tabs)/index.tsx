@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { Disclaimer, Screen } from "@/components/ui";
-import { DoctorWidget, FocusWidget, GreetingHeader, JourneyCard, NewsWidget, QuickActions, SectionTitle, ToolList } from "@/components/Widgets";
+import { DoctorWidget, FocusWidget, GreetingHeader, JourneyCard, NewsWidget, QuickActions, SectionTitle, ToolList, VitalsReminder } from "@/components/Widgets";
 import { useAuth } from "@/lib/auth";
-import { updatePregnancyMonth } from "@/lib/care";
-import { useCareBadge, useCareLinks } from "@/lib/careHooks";
+import { listRecordsOfKind, updatePregnancyMonth } from "@/lib/care";
+import { useCareBadge, useCareLinks, useLiveData } from "@/lib/careHooks";
 import { getNews, type NewsCard } from "@/lib/insights";
 import { loadProfile, saveProfile } from "@/lib/profile";
 
@@ -29,6 +29,20 @@ export default function Home() {
     };
   }, []);
 
+  // Latest real (not sample) vitals, for the 24-hour check-in.
+  const [lastVitals, setLastVitals] = useState<{ uid: string; at: string | null } | null>(null);
+  const loadVitals = useCallback(async () => {
+    if (!user || !careAvailable) return;
+    try {
+      const rows = await listRecordsOfKind(user.id, "vitals", 5);
+      setLastVitals({ uid: user.id, at: rows.find((r) => !r.is_sample)?.created_at ?? null });
+    } catch {
+      // the reminder is optional
+    }
+  }, [user, careAvailable]);
+  useLiveData(loadVitals, 60_000);
+  const vitalsAt = user && lastVitals?.uid === user.id ? lastVitals.at : undefined;
+
   const changeMonth = useCallback(
     (m: number) => {
       setMonth(m);
@@ -44,6 +58,7 @@ export default function Home() {
     <Screen safeTop>
       <GreetingHeader name={name} onAvatar={() => router.navigate("/account")} />
       <JourneyCard month={month} onChangeMonth={changeMonth} />
+      {user && careAvailable ? <VitalsReminder lastAt={vitalsAt} /> : null}
       <QuickActions
         items={[
           { icon: "scan-outline", label: "Scan Rx", href: "/report" },

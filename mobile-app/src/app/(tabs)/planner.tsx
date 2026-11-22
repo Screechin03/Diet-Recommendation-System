@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   Button,
@@ -24,6 +24,18 @@ import {
   ToggleRow,
 } from "@/components/ui";
 import { RecipeCard } from "@/components/RecipeCard";
+import { DayPlan } from "@/components/MealPlan";
+import {
+  adjustMealPlan,
+  getMealPlan,
+  loadCurrentPlan,
+  loadPlanContext,
+  reviewMealPlan,
+  saveCurrentPlan,
+  todayIndex,
+  type MealPlan,
+  type VitalsContext,
+} from "@/lib/mealPlan";
 import { ShareWithDoctor } from "@/components/Care";
 import { useTheme } from "@/components/theme";
 import { useLiveData } from "@/lib/careHooks";
@@ -83,6 +95,35 @@ export default function PlannerScreen() {
   const di = hasDietInstructions(doctorDiet) ? doctorDiet : null;
   const [lastRun, setLastRun] = useState<{ id: number; info: PregnancyInfo; ingredients: string[]; di: DietInstructions | null } | null>(null);
   const [profile, setProfileState] = useState<PregnancyInfo>(loadProfile);
+  const [mode, setMode] = useState<"day" | "recipes">("day");
+  // Opened from a vitals result or a medicine check: plan with exactly those readings / medicines.
+  const params = useLocalSearchParams<{ vitals?: string; medicines?: string }>();
+  const [handoff, setHandoff] = useState<{ key: string; vitals: VitalsContext | null; medicines: string[] } | null>(null);
+  const handoffKey = `${params.vitals ?? ""}|${params.medicines ?? ""}`;
+  if (handoffKey !== "|" && handoff?.key !== handoffKey) {
+    let vitals: VitalsContext | null = null;
+    let medicines: string[] = [];
+    try {
+      vitals = params.vitals ? (JSON.parse(params.vitals) as VitalsContext) : null;
+      medicines = params.medicines ? (JSON.parse(params.medicines) as string[]) : [];
+    } catch {
+      // ignore a malformed link
+    }
+    setHandoff({ key: handoffKey, vitals, medicines });
+    setMode("day");
+  }
+  const [planDays, setPlanDays] = useState<1 | 7>(1);
+  // The current plan lives on the phone, so a week's plan is still here tomorrow.
+  const [plan, setPlan] = useState<{ id: number; value: MealPlan; info: PregnancyInfo; di: DietInstructions | null; savedAt: string } | null>(() => {
+    const saved = loadCurrentPlan();
+    return saved ? { id: 1, value: saved.plan, info: saved.info, di: null, savedAt: saved.savedAt } : null;
+  });
+  const [adjustNote, setAdjustNote] = useState<string | null>(null);
+  function showPlan(next: { id: number; value: MealPlan; info: PregnancyInfo; di: DietInstructions | null; savedAt: string }) {
+    setPlan(next);
+    saveCurrentPlan(next.value, next.info, next.savedAt);
+  }
+  const [planBusy, setPlanBusy] = useState(false);
   const [ingredients, setIngredients] = useState("");
   const [aversions, setAversions] = useState((profile.food_aversions ?? []).join(", "));
   const [count, setCount] = useState(5);
@@ -165,6 +206,66 @@ export default function PlannerScreen() {
     }
   }
 
+  async function makePlan() {
+    setPlanBusy(true);
+    setError(null);
+    // Same profile as the recipe search, with the doctor's instructions on top.
+    const info: PregnancyInfo = {
+      ...profile,
+      food_aversions: union(parseCsvList(aversions), di?.avoid),
+      dietary_restrictions: union(profile.dietary_restrictions, di?.restrictions),
+    };
+    try {
+      const saved = await loadPlanContext(isPatient && user ? user.id : null);
+      const context = {
+        vitals: handoff?.vitals ?? saved.vitals,
+        medicines: Array.from(new Set([...(handoff?.medicines ?? []), ...saved.medicines])),
+      };
+      const value = await getMealPlan(info, planDays, context);
+      const id = (plan?.id ?? 0) + 1;
+      showPlan({ id, value, info, di, savedAt: new Date().toISOString() });
+      setAdjustNote(null);
+      if (user && isPatient) savePatientProfile(user.id, { ...profile, food_aversions: parseCsvList(aversions) }).catch(() => {});
+      // Real-time plan first; the AI review (restrictions, pregnancy safety, summary) lands a few seconds later.
+      reviewMealPlan(info, value)
+        .then(({ plan: reviewed }) =>
+          setPlan((p) => {
+            if (!p || p.id !== id) return p;
+            saveCurrentPlan(reviewed, p.info, p.savedAt);
+            return { ...p, value: reviewed };
+          }),
+        )
+        .catch(() => {});
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not make a plan");
+    } finally {
+      setPlanBusy(false);
+    }
+  }
+
+  /** Fresh vitals / medicines: adjust the current plan (at most 2 swaps a day) instead of replacing it. */
+  async function adjustPlan() {
+    if (!plan) return;
+    setPlanBusy(true);
+    setError(null);
+    try {
+      const stored = await loadPlanContext(isPatient && user ? user.id : null);
+      const context = { vitals: handoff?.vitals ?? stored.vitals, medicines: Array.from(new Set([...(handoff?.medicines ?? []), ...stored.medicines])) };
+      const saved = { plan: plan.value, info: plan.info, savedAt: plan.savedAt };
+      const { plan: adjusted, changes } = await adjustMealPlan(saved, context);
+      showPlan({ ...plan, id: plan.id + 1, value: adjusted });
+      setAdjustNote(
+        changes
+          ? `${changes} meal${changes === 1 ? "" : "s"} changed from day ${todayIndex(saved) + 1} on; everything else stays as planned.`
+          : "Your plan already fits these readings: nothing needed to change.",
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not adjust the plan");
+    } finally {
+      setPlanBusy(false);
+    }
+  }
+
   async function onSave(recipe: Recipe) {
     if (!user) {
       router.push("/login");
@@ -194,6 +295,26 @@ export default function PlannerScreen() {
         <Stat label="BMI before" value={bmi ? bmi.toFixed(1) : "–"} caption={!bmi ? "" : bmi < 18.5 ? "Under" : bmi < 25 ? "Healthy" : bmi < 30 ? "Over" : "High"} />
         <Stat label="Gained" value={`${gain >= 0 ? "+" : ""}${gain.toFixed(1)}`} unit="kg" caption="since before" />
       </Row>
+      {handoff && (handoff.vitals || handoff.medicines.length) ? (
+        <View style={{ backgroundColor: t.primaryTint, borderRadius: 18, padding: 14, flexDirection: "row", gap: 10, alignItems: "center" }}>
+          <Ionicons name={handoff.vitals ? "pulse" : "medkit"} size={20} color={t.primary} />
+          <Text style={{ color: t.text, flex: 1, lineHeight: 20 }}>
+            {handoff.vitals ? "Using the vital signs you just measured." : `Planning around ${handoff.medicines.length} medicine${handoff.medicines.length === 1 ? "" : "s"}.`}{" "}
+            {plan ? "Adjust your current plan (at most 2 meals a day change) or make a new one." : "Tap “Plan my day”."}
+          </Text>
+        </View>
+      ) : null}
+      {handoff && plan && (handoff.vitals || handoff.medicines.length) ? (
+        <Button title="Adjust my current plan" icon="git-compare-outline" onPress={adjustPlan} loading={planBusy} />
+      ) : null}
+      <Segmented
+        options={[
+          { value: "day" as const, label: "Day plan" },
+          { value: "recipes" as const, label: "Recipe ideas" },
+        ]}
+        value={mode}
+        onChange={setMode}
+      />
       {di ? (
         <View style={{ backgroundColor: t.infoSoft, borderRadius: 20, padding: 16, gap: 6, flexDirection: "row" }}>
           <Ionicons name="medical" size={20} color={t.info} style={{ marginTop: 1 }} />
@@ -261,6 +382,7 @@ export default function PlannerScreen() {
       <Section icon="restaurant-outline" title="Food preferences">
         <FieldLabel>Dietary restrictions</FieldLabel>
         <Chips options={RESTRICTIONS} selected={profile.dietary_restrictions ?? []} onToggle={toggleRestriction} />
+        {mode === "recipes" ? (
         <Field
           label="Ingredients you want to use"
           placeholder="e.g. spinach, lentils, paneer"
@@ -269,6 +391,7 @@ export default function PlannerScreen() {
           hint="Optional. Comma separated. Typos are auto-corrected."
           autoCapitalize="none"
         />
+        ) : null}
         <Field
           label="Foods you can't stand right now"
           placeholder="e.g. fish, garlic"
@@ -276,12 +399,32 @@ export default function PlannerScreen() {
           onChangeText={setAversions}
           autoCapitalize="none"
         />
-        <FieldLabel>Number of recipes</FieldLabel>
-        <Segmented options={COUNTS} value={count} onChange={setCount} />
-        <ToggleRow label="Explain the picks" hint="A short plain-language note on why these recipes fit you" value={useAi} onChange={setUseAi} />
+        {mode === "recipes" ? (
+          <>
+            <FieldLabel>Number of recipes</FieldLabel>
+            <Segmented options={COUNTS} value={count} onChange={setCount} />
+            <ToggleRow label="Explain the picks" hint="A short plain-language note on why these recipes fit you" value={useAi} onChange={setUseAi} />
+          </>
+        ) : (
+          <>
+            <FieldLabel>Plan length</FieldLabel>
+            <Segmented
+              options={[
+                { value: 1 as const, label: "Today" },
+                { value: 7 as const, label: "A week" },
+              ]}
+              value={planDays}
+              onChange={setPlanDays}
+            />
+          </>
+        )}
       </Section>
 
-      <Button title="Get my recipes" icon="restaurant" onPress={submit} loading={loading} />
+      {mode === "day" ? (
+        <Button title={plan ? "Make a new plan" : "Plan my day"} icon="calendar" onPress={makePlan} loading={planBusy} />
+      ) : (
+        <Button title="Get my recipes" icon="restaurant" onPress={submit} loading={loading} />
+      )}
       <ErrorBox message={error} />
 
       {corrections.length ? (
@@ -290,9 +433,33 @@ export default function PlannerScreen() {
         </InfoBox>
       ) : null}
 
-      <Refined refined={refined} />
+      {mode === "day" && plan ? (
+        <>
+          <ShareWithDoctor
+            key={`plan-${plan.id}`}
+            what="this meal plan"
+            build={() =>
+              dietPlanRecord({
+                pregnancy_info: plan.info,
+                ingredients: [],
+                recipes: plan.value.days.flatMap((d) => d.meals.map((m) => m.recipe)),
+                meta: null,
+                refined: null,
+                meal_plan: plan.value,
+                doctor_instructions: plan.di
+                  ? { avoid: plan.di.avoid, include: plan.di.include, restrictions: plan.di.restrictions, note: plan.di.note, by: plan.di.updated_by_name }
+                  : null,
+              })
+            }
+          />
+          {adjustNote ? <InfoBox>{adjustNote}</InfoBox> : null}
+          <DayPlan key={plan.id} plan={plan.value} info={plan.info} onChange={(value) => showPlan({ ...plan, value })} />
+        </>
+      ) : null}
 
-      {recipes ? (
+      {mode === "recipes" ? <Refined refined={refined} /> : null}
+
+      {mode === "recipes" && recipes ? (
         recipes.length ? (
           <>
             {lastRun ? (

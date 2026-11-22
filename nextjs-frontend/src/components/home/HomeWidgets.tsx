@@ -301,6 +301,35 @@ export function NewsPanel({ news, loading, className = "" }: { news: NewsCard | 
   );
 }
 
+/** Daily vitals check-in: a quiet line when recent, a clear prompt after 24 hours. `lastAt` undefined = loading. */
+export function VitalsReminder({ lastAt, hours }: { lastAt: string | null | undefined; hours: number }) {
+  if (lastAt === undefined) return null;
+  if (lastAt && hours < 24) {
+    return (
+      <Link href="/vitals" className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
+        <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
+        Vitals recorded {timeAgo(lastAt)} · next check-in in {Math.max(1, Math.round(24 - hours))} h
+      </Link>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-amber-200 bg-amber-50/70 p-5 dark:border-amber-900/60 dark:bg-amber-950/20">
+      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-500 text-white" aria-hidden>
+        <Icon.pulse size={20} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold">Time for today’s vitals</div>
+        <div className="text-sm text-zinc-600 dark:text-zinc-300">
+          {lastAt ? `Last recorded ${timeAgo(lastAt)}.` : "No readings yet."} Fresh readings keep your meal plan and your doctor up to date.
+        </div>
+      </div>
+      <Link href="/vitals" className="inline-flex h-10 items-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900">
+        Record now
+      </Link>
+    </div>
+  );
+}
+
 export function ToolList({ items }: { items: Array<{ href: string; icon: ReactNode; title: string; text: string }> }) {
   return (
     <div className="divide-y divide-zinc-100 overflow-hidden rounded-3xl border border-zinc-200/80 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/60">

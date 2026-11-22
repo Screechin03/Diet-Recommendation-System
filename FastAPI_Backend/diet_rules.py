@@ -17,6 +17,11 @@ _CUSTOM: Dict[str, str] = {
     "milk": r"(?<!coconut )(?<!almond )(?<!soy )(?<!oat )(?<!rice )(?<!cashew )\bmilks?\b",
     "butter": r"(?<!peanut )(?<!almond )(?<!cocoa )(?<!apple )(?<!cashew )(?<!sunflower )(?<!nut )\bbutters?\b",
     "cream": r"(?<!coconut )\bcreams?\b(?! of tartar)",
+    # "egg-free", "nut-free", "dairy-free", "gluten-free" name the absence of the food
+    "egg": r"\beggs?\b(?!\s?-?\s?free)",
+    "nut": r"\bnuts?\b(?!\s?-?\s?free)",
+    "dairy": r"\bdairy\b(?!\s?-?\s?free)",
+    "gluten": r"\bgluten\b(?!\s?-?\s?free)",
     # gluten-free flours / noodles / tortillas
     "flour": r"(?<!rice )(?<!almond )(?<!coconut )(?<!chickpea )(?<!corn )(?<!potato )(?<!tapioca )(?<!oat )(?<!buckwheat )\bflours?\b",
     "noodle": r"(?<!rice )\bnoodles?\b",
@@ -56,12 +61,23 @@ MEAT_AND_SEAFOOD = [
     "tilapia", "halibut", "trout", "sardine", "anchovy", "anchovies", "mackerel", "shrimp", "prawn", "crab",
     "lobster", "oyster", "mussel", "clam", "scallop", "squid", "calamari", "octopus", "fish sauce",
     "oyster sauce", "worcestershire sauce", "chicken broth", "beef broth", "chicken stock", "beef stock",
+    # less common meats, fish and animal-derived ingredients
+    "goat", "bison", "elk", "quail", "pheasant", "cornish hen", "jerky", "pastrami", "bratwurst", "bologna",
+    "mortadella", "capicola", "guanciale", "andouille", "giblet", "oxtail", "tripe", "sweetbread", "bone marrow",
+    "suet", "tallow", "schmaltz", "drippings", "pork rind", "chicharron", "bouillon", "consomme", "rennet",
+    "jell-o", "jello", "marshmallow", "catfish", "snapper", "sea bass", "haddock", "pollock", "flounder", "sole fillet",
+    "mahi", "grouper", "herring", "lox", "bonito", "dashi", "caviar", "roe", "surimi", "crawfish", "crayfish", "seafood",
+    "keema", "kheema", "gosht", "murgh", "machli", "jhinga",
 ]
-EGG = ["egg", "mayonnaise", "mayo", "meringue", "eggnog"]
+EGG = ["egg", "mayonnaise", "mayo", "meringue", "eggnog", "aioli", "hollandaise", "custard", "frittata", "omelet", "omelette",
+       "quiche", "souffle", "challah", "brioche", "carbonara", "anda"]
 DAIRY = [
     "milk", "cheese", "butter", "ghee", "paneer", "yogurt", "yoghurt", "curd", "cream", "whey", "casein",
     "buttermilk", "ricotta", "mozzarella", "parmesan", "cheddar", "feta", "gouda", "brie", "mascarpone",
     "half-and-half", "custard", "dairy",
+    "creme fraiche", "kefir", "queso", "cotija", "gruyere", "provolone", "romano", "asiago", "monterey jack", "colby",
+    "pecorino", "parmigiano", "halloumi", "burrata", "labneh", "quark", "skyr", "alfredo", "bechamel", "lassi", "raita",
+    "khoa", "khoya", "malai", "kulfi", "rabri", "chhena", "dahi",
 ]
 GLUTEN = [
     "wheat", "flour", "bread", "breadcrumb", "panko", "pasta", "spaghetti", "macaroni", "lasagna", "noodle",
@@ -71,14 +87,18 @@ GLUTEN = [
     "pie", "pastry", "pie shell", "bisquick", "crescent roll", "phyllo", "filo", "dumpling", "pizza", "calzone",
     "quiche", "empanada", "pierogi", "ravioli", "tortellini", "gnocchi", "waffle", "pancake", "muffin",
     "croissant", "pretzel", "stuffing", "cake", "cookie", "brownie", "cream of wheat",
+    "atta", "maida", "rava", "sooji", "suji", "naan", "chapati", "roti", "paratha", "puri", "samosa", "kulcha", "bhatura",
+    "udon", "ramen", "wonton", "matzo", "teriyaki", "hoisin", "bran", "wheat germ", "graham",
 ]
 NUTS = [
     "nut", "peanut", "almond", "walnut", "cashew", "pecan", "pistachio", "hazelnut", "macadamia",
     "brazil nut", "pine nut", "praline", "marzipan", "nutella",
     # nut-based products whose names hide the nut
     "amaretti", "pesto", "frangipane", "nougat", "baklava", "gianduja",
+    "chestnut", "macaron", "satay", "kaju", "badam", "pista",
 ]
-SOY = ["soy", "soya", "soybean", "tofu", "tempeh", "edamame", "miso", "tamari", "soy sauce"]
+SOY = ["soy", "soya", "soybean", "tofu", "tempeh", "edamame", "miso", "tamari", "soy sauce", "teriyaki", "hoisin", "tvp",
+       "textured vegetable protein"]
 
 # Food groups are matched once each and cached; restrictions are unions of groups.
 FOOD_GROUPS: Dict[str, List[str]] = {

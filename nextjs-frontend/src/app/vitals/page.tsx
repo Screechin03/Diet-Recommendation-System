@@ -12,6 +12,8 @@ import { formatBytes } from "@/lib/report";
 import { listRecordsOfKind, SEVERITY_COPY, timeAgo, updatePregnancyMonth, type HealthRecord } from "@/lib/care";
 import { vitalsRecord } from "@/lib/careRecords";
 import { type VitalsAnalysis } from "@/lib/vitals";
+import { PlanFromHere } from "@/components/mealplan/PlanFromHere";
+import { vitalsContextFrom } from "@/lib/mealPlan";
 
 type SourceKind = "usb" | "file" | "demo";
 
@@ -193,6 +195,13 @@ export default function VitalsPage() {
                   void loadHistory();
                 }}
               />
+              {!result.demo ? (
+                <PlanFromHere
+                  handoff={{ vitals: vitalsContextFrom(result) }}
+                  title="Eat for these readings"
+                  text="Today’s meal plan, adjusted for what you just measured."
+                />
+              ) : null}
               <VitalsResults analysis={result} onNew={() => setResult(null)} />
             </>
           ) : null}

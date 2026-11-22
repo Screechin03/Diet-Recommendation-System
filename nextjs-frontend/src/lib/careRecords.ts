@@ -1,3 +1,4 @@
+import type { MealPlan } from "./mealPlan";
 // Turns each tool's result into a record the patient can keep and share with her doctor.
 // The same shapes are read back by components/care/RecordContent.tsx (and the phone app).
 
@@ -34,6 +35,8 @@ export interface DietPlanRecordData {
   meta: PredictionOut["meta"] | null;
   refined: RefinedSummary | null;
   doctor_instructions: { avoid: string[]; include: string[]; restrictions: string[]; note: string | null; by: string | null } | null;
+  /** Present when the plan came from the day-plan optimiser. */
+  meal_plan?: MealPlan | null;
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -142,8 +145,13 @@ export function dietPlanRecord(data: DietPlanRecordData): NewRecord {
   ].filter(Boolean);
   return {
     kind: "diet_plan",
-    title: `Diet plan · month ${info.pregnancy_month}`,
-    summary: [plural(data.recipes.length, "recipe"), ...extras].join(" · "),
+    title: data.meal_plan
+      ? `${data.meal_plan.days.length > 1 ? `${data.meal_plan.days.length}-day meal plan` : "Day meal plan"} · month ${info.pregnancy_month}`
+      : `Diet plan · month ${info.pregnancy_month}`,
+    summary: (data.meal_plan
+      ? [`${data.meal_plan.days[0].targets_met} of ${data.meal_plan.days[0].targets_total} targets met`, ...extras]
+      : [plural(data.recipes.length, "recipe"), ...extras]
+    ).join(" · "),
     severity: "info",
     data: data as unknown as Record<string, unknown>,
   };

@@ -80,8 +80,8 @@ def build(csv_path: str, db_path: str, chunksize: int = 20_000) -> int:
 
 
 def load(db_path: str) -> pd.DataFrame:
-    """The in-RAM part: rowid, nutrition numbers and search text, in rowid (= original CSV) order."""
-    cols = ", ".join(_q(c) for c in NUTRITION_COLUMNS + [SEARCH_COLUMN])
+    """The in-RAM part: rowid, recipe id, nutrition numbers and search text, in rowid (= original CSV) order."""
+    cols = ", ".join(_q(c) for c in ["RecipeId"] + NUTRITION_COLUMNS + [SEARCH_COLUMN])
     conn = _connect_ro(db_path)
     try:
         parts = list(

@@ -34,6 +34,11 @@ from gemini_refiner import refine_recipe_tips, refine_risk_explanation
 from model import SEARCH_COLUMN, build_search_text, output_recommended_recipes, recommend
 from ocr import handwriting as handwriting_ocr
 from insights import latest_news
+from meal_plan.planner import NUTRIENTS as MP_NUTRIENTS, MealPlanner
+from meal_plan.slots import SLOT_LABEL, SLOTS
+from meal_plan.context import VitalsContext, apply_medicines, apply_vitals, resolve_medicines
+from meal_plan.review import gemini_plan, gemini_review, rule_audit
+from meal_plan.targets import daily_targets
 from med_safety.catalog import get_catalog as get_med_catalog
 from med_safety.checker import check_medicines
 from med_safety.model_layer import get_model as get_med_model
@@ -506,6 +511,10 @@ def endpoints():
             {"method": "POST", "path": "/meds/check",
              "purpose": "Pregnancy safety, interactions and timing plan for a list of medicines (JSON: medicines, pregnancy_month)"},
             {"method": "GET", "path": "/meds/model", "purpose": "Status and test metrics of the drug-interaction graph model"},
+            {"method": "POST", "path": "/meal-plan", "purpose": "1-7 day pregnancy meal plan (5 meals a day) optimised for trimester nutrient targets"},
+            {"method": "POST", "path": "/meal-plan/swap", "purpose": "Best replacements for one meal of a day plan"},
+            {"method": "POST", "path": "/meal-plan/adjust", "purpose": "Fit an existing plan to fresh vitals/medicines with at most 2 swaps a day"},
+            {"method": "POST", "path": "/meal-plan/review", "purpose": "Rule audit + Gemini review of a plan; flagged meals are replaced"},
             {"method": "GET", "path": "/insights/news", "purpose": "One pregnancy research news item (ScienceDaily), summarised in plain language"},
             {"method": "GET", "path": "/health", "purpose": "Readiness check"},
         ],
@@ -708,6 +717,257 @@ def meds_check(body: MedCheckIn):
 @app.get("/meds/model")
 def meds_model():
     return get_med_model().status()
+
+
+# ---------------------------------------------------------------------------
+# Daily meal plans (meal_plan/: targets, meal slots, MILP optimiser)
+# ---------------------------------------------------------------------------
+
+_planner: Optional[MealPlanner] = None
+_planner_lock = threading.Lock()
+
+
+def get_planner() -> MealPlanner:
+    global _planner
+    with _planner_lock:
+        if _planner is None:
+            _planner = MealPlanner(get_dataset(), SEARCH_COLUMN)
+        return _planner
+
+
+class MealPlanIn(BaseModel):
+    pregnancy_info: PregnancyInfo
+    days: int = Field(1, ge=1, le=7)
+    seed: Optional[int] = Field(None, ge=0, le=1_000_000)
+    vitals: Optional[VitalsContext] = None      # latest vitals analysis, if any
+    medicines: List[str] = Field(default_factory=list, max_items=30)  # the patient's current medicines
+
+
+class MealReviewIn(BaseModel):
+    pregnancy_info: PregnancyInfo
+    days: List[Dict[str, int]] = Field(..., max_items=7)  # per day: slot -> RecipeId
+    context: List[str] = Field(default_factory=list, max_items=20)
+
+
+class MealSwapIn(BaseModel):
+    pregnancy_info: PregnancyInfo
+    meals: Dict[str, int]  # slot -> RecipeId of the current day
+    slot: Literal["breakfast", "lunch", "dinner", "snack_am", "snack_pm"]
+    seed: Optional[int] = Field(None, ge=0, le=1_000_000)
+
+
+def _allowed_rows(dataset: pd.DataFrame, planner: MealPlanner, info: PregnancyInfo) -> np.ndarray:
+    candidates = exclude_terms(apply_dietary_filters(dataset, normalize_restrictions(info.dietary_restrictions)), info.food_aversions)
+    allowed = np.zeros(len(dataset), dtype=bool)
+    allowed[candidates.index.to_numpy()] = True
+    if info.has_heartburn:
+        allowed &= ~planner.spicy
+    return allowed
+
+
+def _meal_payload(dataset: pd.DataFrame, planner: MealPlanner, rows: Dict[str, int]) -> List[dict]:
+    order = [s for s in SLOTS if s in rows]
+    details = output_recommended_recipes(with_recipe_details(dataset.iloc[[rows[s] for s in order]])) or []
+    meals = []
+    for slot, recipe in zip(order, details):
+        r = rows[slot]
+        recipe.pop("_row", None)
+        recipe["RecipeId"] = int(dataset["RecipeId"].iat[r])
+        recipe["estimated"] = {k: round(float(planner.A[r, planner.index[k]]), 1) for k in ("iron_mg", "folate_ug", "calcium_mg")}
+        recipe["estimate_coverage_pct"] = int(planner.coverage[r])
+        meals.append({"slot": slot, "label": SLOT_LABEL[slot], "recipe": recipe})
+    return meals
+
+
+@app.post("/meal-plan")
+def meal_plan(body: MealPlanIn):
+    try:
+        dataset = get_dataset()
+        planner = get_planner()
+    except (RuntimeError, OSError, KeyError) as e:
+        raise HTTPException(status_code=503, detail=f"Meal planner unavailable: {e}") from e
+    info = body.pregnancy_info
+    targets = daily_targets(info)
+    meds = resolve_medicines(body.medicines) if body.medicines else {}
+    context = apply_vitals(targets, body.vitals) + apply_medicines(targets, [i for ids in meds.values() for i in ids], info.has_gestational_diabetes)
+    allowed = _allowed_rows(dataset, planner, info)
+    seed = body.seed if body.seed is not None else int(np.random.default_rng().integers(0, 1_000_000))
+    days, used = [], np.zeros(len(dataset), dtype=bool)
+    for d in range(body.days):
+        plan = planner.plan_day(targets, allowed & ~used, seed=seed + d)
+        if plan is None:
+            break
+        used[list(plan.rows.values())] = True
+        coverage = planner.coverage_report(plan.totals, targets)
+        days.append({
+            "day": d + 1,
+            "meals": _meal_payload(dataset, planner, plan.rows),
+            "totals": {k: round(v, 1) for k, v in plan.totals.items()},
+            "coverage": coverage,
+            "targets_met": sum(c["met"] for c in coverage.values()),
+            "targets_total": len(coverage),
+        })
+    if not days:
+        # The optimiser found nothing (very narrow restrictions): fall back to a Gemini-written day.
+        meals = gemini_plan(info, targets, context)
+        if not meals:
+            raise HTTPException(status_code=422, detail="No plan fits these restrictions. Try removing a restriction or a food you avoid.")
+        return {"seed": seed, "source": "ai", "targets": targets.as_dict(), "context": context, "notes": targets.notes,
+                "method": {"name": "Written by Gemini (no database plan fitted these restrictions)", "estimated": ["all"]},
+                "days": [{"day": 1, "ai_meals": meals, "meals": [], "totals": {}, "coverage": {}, "targets_met": 0, "targets_total": 0}]}
+    return {
+        "seed": seed,
+        "source": "optimiser",
+        "targets": targets.as_dict(),
+        "days": days,
+        "context": context,
+        "medicines_recognised": meds,
+        "method": {"name": "Mixed-integer optimisation (HiGHS)", "estimated": ["iron_mg", "folate_ug", "calcium_mg"]},
+        "notes": targets.notes,
+    }
+
+
+class MealAdjustIn(BaseModel):
+    pregnancy_info: PregnancyInfo
+    days: List[Dict[str, int]] = Field(..., max_items=7)  # the plan's remaining days: slot -> RecipeId
+    vitals: Optional[VitalsContext] = None
+    medicines: List[str] = Field(default_factory=list, max_items=30)
+    max_changes: int = Field(2, ge=1, le=5)
+
+
+@app.post("/meal-plan/adjust")
+def meal_plan_adjust(body: MealAdjustIn):
+    """Fit an existing plan to fresh vitals / medicines with the fewest swaps (at most `max_changes` a day)
+    instead of a new plan. Unchanged meals stay; each change says what it replaced."""
+    try:
+        dataset = get_dataset()
+        planner = get_planner()
+    except (RuntimeError, OSError, KeyError) as e:
+        raise HTTPException(status_code=503, detail=f"Meal planner unavailable: {e}") from e
+    info = body.pregnancy_info
+    targets = daily_targets(info)
+    meds = resolve_medicines(body.medicines) if body.medicines else {}
+    context = apply_vitals(targets, body.vitals) + apply_medicines(targets, [i for ids in meds.values() for i in ids], info.has_gestational_diabetes)
+    allowed = _allowed_rows(dataset, planner, info)
+    ids = dataset["RecipeId"].to_numpy()
+    out_days = []
+    for d, day in enumerate(body.days):
+        current = {}
+        for slot, rid in day.items():
+            hit = np.flatnonzero(ids == rid)
+            if slot in SLOTS and len(hit):
+                current[slot] = int(hit[0])
+        before = planner.coverage_report(dict(zip(MP_NUTRIENTS, planner.totals(current.values()).tolist())), targets) if current else {}
+        plan = planner.adjust_day(current, targets, allowed | np.isin(np.arange(len(dataset)), list(current.values())),
+                                  max_changes=body.max_changes, seed=d) if len(current) == len(SLOTS) else None
+        if plan is None:
+            out_days.append({"day": d + 1, "changed": [], "unchanged": True})
+            continue
+        changed_slots = [s for s in SLOTS if plan.rows[s] != current.get(s)]
+        old_names = {}
+        if changed_slots:
+            old = _meal_payload(dataset, planner, {s: current[s] for s in changed_slots})
+            old_names = {m["slot"]: m["recipe"]["Name"] for m in old}
+        coverage = planner.coverage_report(plan.totals, targets)
+        out_days.append({
+            "day": d + 1,
+            "meals": _meal_payload(dataset, planner, plan.rows),
+            "changed": [{"slot": s, "removed": old_names.get(s)} for s in changed_slots],
+            "targets_met_before": sum(c["met"] for c in before.values()),
+            "coverage": coverage,
+            "totals": {k: round(v, 1) for k, v in plan.totals.items()},
+            "targets_met": sum(c["met"] for c in coverage.values()),
+            "targets_total": len(coverage),
+        })
+    return {"context": context, "notes": targets.notes, "days": out_days}
+
+
+@app.post("/meal-plan/review")
+def meal_plan_review(body: MealReviewIn):
+    """Second opinion on a plan: rule audit + Gemini (hidden ingredients, pregnancy safety, a short summary).
+    Flagged meals come back with a replacement already chosen. Without Gemini only the rule audit runs."""
+    try:
+        dataset = get_dataset()
+        planner = get_planner()
+    except (RuntimeError, OSError, KeyError) as e:
+        raise HTTPException(status_code=503, detail=f"Meal planner unavailable: {e}") from e
+    info = body.pregnancy_info
+    targets = daily_targets(info)
+    ids = dataset["RecipeId"].to_numpy()
+    restrictions = normalize_restrictions(info.dietary_restrictions)
+    allowed = _allowed_rows(dataset, planner, info)
+    results = []
+    gemini_used = False
+    for d, day in enumerate(body.days):
+        rows = {}
+        for slot, rid in day.items():
+            hit = np.flatnonzero(ids == rid)
+            if slot in SLOTS and len(hit):
+                rows[slot] = int(hit[0])
+        details = _meal_payload(dataset, planner, rows)
+        meals, flags = [], {}
+        for k, m in enumerate(details):
+            r = m["recipe"]
+            text = (r["Name"] + " " + " ".join(r["RecipeIngredientParts"])).lower()
+            broken = rule_audit(text, restrictions, info.food_aversions)
+            if broken:
+                flags[k] = "Breaks: " + ", ".join(broken)
+            meals.append({"id": k, "slot": m["slot"], "name": r["Name"], "ingredients": r["RecipeIngredientParts"]})
+        review = gemini_review(meals, info, body.context)
+        if review is not None:
+            gemini_used = True
+            flags.update({k: v for k, v in review["flags"].items() if k not in flags})
+        replacements = []
+        for k, issue in flags.items():
+            slot = details[k]["slot"]
+            plan = __import__("meal_plan.planner", fromlist=["DayPlan"]).DayPlan(rows, {}, 0.0, "milp")
+            for r in planner.alternatives(plan, slot, targets, allowed, k=8, seed=d + 7):
+                cand = _meal_payload(dataset, planner, {slot: r})[0]
+                txt = (cand["recipe"]["Name"] + " " + " ".join(cand["recipe"]["RecipeIngredientParts"])).lower()
+                if not rule_audit(txt, restrictions, info.food_aversions):
+                    rows[slot] = r
+                    replacements.append({"slot": slot, "issue": issue, "removed": details[k]["recipe"]["Name"], "meal": cand})
+                    break
+        totals = dict(zip(MP_NUTRIENTS, planner.totals(rows.values()).round(1).tolist()))
+        cov = planner.coverage_report(totals, targets)
+        results.append({"day": d + 1, "replacements": replacements, "summary": review["summary"] if review else None,
+                        "coverage": cov, "totals": totals, "targets_met": sum(c["met"] for c in cov.values())})
+    return {"reviewed_by": "gemini" if gemini_used else "rules", "days": results}
+
+
+@app.post("/meal-plan/swap")
+def meal_plan_swap(body: MealSwapIn):
+    try:
+        dataset = get_dataset()
+        planner = get_planner()
+    except (RuntimeError, OSError, KeyError) as e:
+        raise HTTPException(status_code=503, detail=f"Meal planner unavailable: {e}") from e
+    info = body.pregnancy_info
+    targets = daily_targets(info)
+    ids = dataset["RecipeId"].to_numpy()
+    rows = {}
+    for slot, rid in body.meals.items():
+        hit = np.flatnonzero(ids == rid)
+        if slot in SLOTS and len(hit):
+            rows[slot] = int(hit[0])
+    if body.slot not in rows:
+        raise HTTPException(status_code=422, detail="That meal is not in the plan.")
+    from meal_plan.planner import DayPlan
+
+    plan = DayPlan(rows, {}, 0.0, "milp")
+    alts = planner.alternatives(plan, body.slot, targets, _allowed_rows(dataset, planner, info), k=5, seed=body.seed or 1)
+    options = []
+    for r in alts:
+        new_rows = {**rows, body.slot: r}
+        totals = dict(zip(MP_NUTRIENTS, planner.totals(new_rows.values()).round(1).tolist()))
+        cov = planner.coverage_report(totals, targets)
+        options.append({
+            "meal": _meal_payload(dataset, planner, {body.slot: r})[0],
+            "targets_met": sum(c["met"] for c in cov.values()),
+            "coverage": cov,
+            "totals": totals,
+        })
+    return {"slot": body.slot, "options": options}
 
 
 @app.get("/insights/news")

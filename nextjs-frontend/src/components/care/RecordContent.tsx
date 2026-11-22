@@ -1,5 +1,7 @@
 "use client";
 
+import { DayPlanView } from "@/components/mealplan/DayPlanView";
+
 import { useState, type ReactNode } from "react";
 import { RecipeCard } from "@/components/RecipeCard";
 import { DietPlanView, ReportView } from "@/components/report/ReportView";
@@ -298,6 +300,8 @@ function DietPlanRecord({ data }: { data: DietPlanRecordData }) {
         </div>
       </Card>
 
+      {data?.meal_plan?.days?.length ? <DayPlanView plan={data.meal_plan} /> : null}
+
       {di && (di.avoid.length || di.include.length || di.restrictions.length || di.note) ? (
         <Notice tone="blue" title={`${doctorName(di.by)}'s diet instructions were applied`}>
           {[
@@ -311,7 +315,7 @@ function DietPlanRecord({ data }: { data: DietPlanRecordData }) {
 
       <Refined refined={data?.refined} />
 
-      {recipes.length ? (
+      {recipes.length && !data?.meal_plan?.days?.length ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {recipes.map((r, i) => <RecipeCard key={`${r.Name}-${i}`} recipe={r} />)}
         </div>

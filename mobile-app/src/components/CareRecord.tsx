@@ -10,6 +10,8 @@ import { Pill, Thread, toneColors, type Tone } from "./Care";
 import { DietPlanCard, ReportCard } from "./ReportViews";
 import { VitalsResult } from "./VitalsViews";
 import { RecipeCard } from "./RecipeCard";
+import { CoverageCard } from "./MealPlan";
+import { SLOT_ORDER, SLOT_TIME, type PlanMeal } from "@/lib/mealPlan";
 import { MedCheckView } from "./Meds";
 import type { MedCheckResult } from "@/lib/meds";
 import { Refined } from "./Refined";
@@ -199,7 +201,21 @@ function DietPlanRecord({ data }: { data: DietPlanRecordData }) {
         </InfoBox>
       ) : null}
       <Refined refined={data?.refined ?? null} />
-      {recipes.map((r, idx) => <RecipeCard key={`${r.Name}-${idx}`} recipe={r} />)}
+      {data?.meal_plan?.days?.length
+        ? data.meal_plan.days.map((d) => (
+            <View key={d.day} style={{ gap: 10 }}>
+              {d.targets_total ? <CoverageCard day={d} /> : null}
+              {SLOT_ORDER.map((slot) => d.meals.find((m) => m.slot === slot))
+                .filter((m): m is PlanMeal => Boolean(m))
+                .map((m) => (
+                  <View key={m.slot} style={{ gap: 6 }}>
+                    <SectionLabel>{`${m.label} · ${SLOT_TIME[m.slot]}`}</SectionLabel>
+                    <RecipeCard recipe={m.recipe} />
+                  </View>
+                ))}
+            </View>
+          ))
+        : recipes.map((r, idx) => <RecipeCard key={`${r.Name}-${idx}`} recipe={r} />)}
     </View>
   );
 }

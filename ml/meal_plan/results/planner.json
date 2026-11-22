@@ -1,0 +1,160 @@
+{
+ "profiles": 200,
+ "methods": {
+  "knn": {
+   "plans": 200,
+   "failed": 0,
+   "targets_met_pct": 35.17272727272727,
+   "all_met_pct": 0.0,
+   "adequacy_pct": 80.0068861971127,
+   "energy_err_pct": 44.74122548945382,
+   "limits_broken_per_day": 2.865,
+   "seconds_median": 0.5737522840499878,
+   "per_nutrient_met_pct": {
+    "energy_kcal": 5.5,
+    "protein_g": 96.5,
+    "fiber_g": 100.0,
+    "iron_mg": 1.5,
+    "folate_ug": 27.0,
+    "calcium_mg": 0.0,
+    "sodium_mg": 4.5,
+    "satfat_g": 18.5,
+    "sugar_g": 75.0
+   },
+   "per_nutrient_pct_of_target": {
+    "energy_kcal": 142.41,
+    "protein_g": 232.95,
+    "fiber_g": 214.265,
+    "iron_mg": 64.86,
+    "folate_ug": 79.79,
+    "calcium_mg": 57.745,
+    "sodium_mg": 158.32,
+    "satfat_g": 147.945,
+    "sugar_g": 78.52
+   },
+   "by_trimester_targets_met_pct": {
+    "1": 31.363636363636367,
+    "2": 33.10719131614655,
+    "3": 40.71146245059288
+   }
+  },
+  "random": {
+   "plans": 200,
+   "failed": 0,
+   "targets_met_pct": 41.404545454545456,
+   "all_met_pct": 0.0,
+   "adequacy_pct": 53.85956399038694,
+   "energy_err_pct": 23.897886344438813,
+   "limits_broken_per_day": 1.085,
+   "seconds_median": 0.022551894187927246,
+   "per_nutrient_met_pct": {
+    "energy_kcal": 13.0,
+    "protein_g": 60.5,
+    "fiber_g": 41.5,
+    "iron_mg": 0.0,
+    "folate_ug": 0.0,
+    "calcium_mg": 0.0,
+    "sodium_mg": 49.5,
+    "satfat_g": 65.0,
+    "sugar_g": 84.5
+   },
+   "per_nutrient_pct_of_target": {
+    "energy_kcal": 77.955,
+    "protein_g": 104.435,
+    "fiber_g": 87.46,
+    "iron_mg": 33.455,
+    "folate_ug": 40.1,
+    "calcium_mg": 32.04,
+    "sodium_mg": 102.685,
+    "satfat_g": 89.745,
+    "sugar_g": 64.99
+   },
+   "by_trimester_targets_met_pct": {
+    "1": 46.46306818181819,
+    "2": 37.73405698778833,
+    "3": 40.27667984189723
+   }
+  },
+  "greedy": {
+   "plans": 200,
+   "failed": 0,
+   "targets_met_pct": 62.3,
+   "all_met_pct": 0.0,
+   "adequacy_pct": 74.67712738248095,
+   "energy_err_pct": 9.620297717798486,
+   "limits_broken_per_day": 0.32,
+   "seconds_median": 0.016936421394348145,
+   "per_nutrient_met_pct": {
+    "energy_kcal": 51.0,
+    "protein_g": 100.0,
+    "fiber_g": 100.0,
+    "iron_mg": 0.0,
+    "folate_ug": 0.0,
+    "calcium_mg": 0.0,
+    "sodium_mg": 100.0,
+    "satfat_g": 100.0,
+    "sugar_g": 100.0
+   },
+   "per_nutrient_pct_of_target": {
+    "energy_kcal": 109.095,
+    "protein_g": 200.145,
+    "fiber_g": 167.575,
+    "iron_mg": 54.03,
+    "folate_ug": 65.94,
+    "calcium_mg": 53.405,
+    "sodium_mg": 54.88,
+    "satfat_g": 55.25,
+    "sugar_g": 38.035
+   },
+   "by_trimester_targets_met_pct": {
+    "1": 61.91761363636363,
+    "2": 63.120759837177744,
+    "3": 61.85770750988142
+   }
+  },
+  "milp": {
+   "plans": 200,
+   "failed": 0,
+   "targets_met_pct": 70.1409090909091,
+   "all_met_pct": 0.0,
+   "adequacy_pct": 76.89979129350597,
+   "energy_err_pct": 4.867939028108459,
+   "limits_broken_per_day": 0.02,
+   "seconds_median": 0.05306851863861084,
+   "per_nutrient_met_pct": {
+    "energy_kcal": 100.0,
+    "protein_g": 100.0,
+    "fiber_g": 100.0,
+    "iron_mg": 0.0,
+    "folate_ug": 0.0,
+    "calcium_mg": 0.0,
+    "sodium_mg": 99.5,
+    "satfat_g": 100.0,
+    "sugar_g": 100.0
+   },
+   "per_nutrient_pct_of_target": {
+    "energy_kcal": 103.835,
+    "protein_g": 168.17,
+    "fiber_g": 145.175,
+    "iron_mg": 55.755,
+    "folate_ug": 71.365,
+    "calcium_mg": 57.395,
+    "sodium_mg": 70.11,
+    "satfat_g": 56.42,
+    "sugar_g": 45.4
+   },
+   "by_trimester_targets_met_pct": {
+    "1": 70.02840909090908,
+    "2": 70.06784260515605,
+    "3": 70.31620553359683
+   }
+  }
+ },
+ "week": {
+  "profiles": 20,
+  "complete_weeks_pct": 100.0,
+  "targets_met_pct": 70.13636363636364,
+  "day7_targets_met_pct": 70.13636363636364,
+  "seconds_per_week_median": 0.3927724361419678
+ }
+}

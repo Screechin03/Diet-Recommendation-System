@@ -74,6 +74,7 @@ function geminiOnlyMode(): boolean {
 function geminiCandidateModels(): string[] {
   return unique([
     geminiImageModel(),
+    "gemini-2.5-flash-image",
     "gemini-2.0-flash-exp-image-generation",
     "gemini-2.0-flash-preview-image-generation",
     "gemini-2.0-flash-exp",
@@ -201,10 +202,29 @@ function scoreMeal(meal: MealDbItem, recipeTokens: Set<string>, ingredientTokens
   return score;
 }
 
-function isConfidentMatch(candidate: Candidate, recipeTokens: Set<string>): boolean {
-  const titleTokens = new Set(tokenize(candidate.title));
-  const titleOverlap = overlapCount(recipeTokens, titleTokens);
-  return candidate.score >= 9 && titleOverlap >= 1;
+// Words that say what kind of dish it is. A photo of a different kind of dish is worse than no photo.
+const DISH_WORDS = new Set([
+  "curry", "soup", "salad", "stew", "pancake", "cake", "bread", "pasta", "pizza", "rice", "dal", "dhal", "biryani",
+  "sandwich", "burger", "taco", "omelette", "omelet", "muffin", "cookie", "pie", "smoothie", "oatmeal", "porridge",
+  "noodle", "risotto", "casserole", "chili", "wrap", "tart", "pudding", "upma", "poha", "dosa", "idli", "paratha",
+  "kebab", "tikka", "korma", "sabzi", "raita", "lasagna", "quiche", "frittata", "waffle", "brownie", "pilaf", "pulao",
+  "khichdi", "halwa", "kheer", "chutney", "dip", "hummus", "burrito", "enchilada", "quesadilla", "skewer", "roast",
+]);
+const singular = (t: string) => (t.endsWith("ies") ? `${t.slice(0, -3)}y` : t.endsWith("es") && t.length > 4 ? t.slice(0, -2) : t.endsWith("s") && t.length > 3 ? t.slice(0, -1) : t);
+
+/** True when the photo's title names the same dish: the names mostly agree both ways and the dish type matches. */
+function sameDish(recipeName: string, title: string): boolean {
+  const r = new Set(tokenize(recipeName).map(singular));
+  const t = new Set(tokenize(title).map(singular));
+  if (!r.size || !t.size) return false;
+  const overlap = overlapCount(r, t);
+  const dishes = [...r].filter((x) => DISH_WORDS.has(x));
+  if (dishes.length && !dishes.some((d) => t.has(d))) return false;
+  return overlap / r.size >= 0.6 && overlap / t.size >= 0.5;
+}
+
+function isConfidentMatch(candidate: Candidate, recipeName: string): boolean {
+  return candidate.score >= 9 && sameDish(recipeName, candidate.title);
 }
 
 function getCached(cacheKey: string): ResolvedImage | null {
@@ -368,7 +388,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ imageUrl: null, source: null });
     }
 
-    const cacheKey = `v3::${recipeName}||${ingredientsRaw}`;
+    const cacheKey = `v4::${recipeName}||${ingredientsRaw}`;
     const cached = wantDebug ? null : getCached(cacheKey);
     if (cached) return NextResponse.json(cached);
 
@@ -455,9 +475,9 @@ export async function GET(req: Request) {
       .filter((c): c is Candidate => Boolean(c));
 
     deduped.sort((a, b) => b.score - a.score);
-    const best = deduped[0] ?? null;
+    const best = deduped.find((c) => isConfidentMatch(c, recipeName)) ?? null;
 
-    if (best && isConfidentMatch(best, recipeTokens)) {
+    if (best) {
       const payload: ResolvedImage = {
         imageUrl: best.imageUrl,
         source: best.source,
@@ -480,6 +500,7 @@ export async function GET(req: Request) {
       const titleTokens = new Set(tokenize(title));
       const score = overlapCount(recipeTokens, titleTokens) * 5 + overlapCount(ingredientTokens, titleTokens) * 3;
 
+      if (!sameDish(recipeName, title.replace(/^File:/i, "").replace(/\.[a-z]+$/i, ""))) continue;
       if (!wikiBest || score > wikiBest.score) {
         wikiBest = {
           imageUrl,

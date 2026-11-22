@@ -16,6 +16,7 @@ import { SectionTitle } from "@/components/Widgets";
 import { listRecordsOfKind, SEVERITY_COPY, timeAgo, updatePregnancyMonth, type HealthRecord } from "@/lib/care";
 import { vitalsRecord } from "@/lib/careRecords";
 import { type VitalsAnalysis } from "@/lib/vitals";
+import { vitalsContextFrom } from "@/lib/mealPlan";
 
 const SCENARIOS = [
   { value: "normal", label: "Healthy" },
@@ -126,6 +127,15 @@ export default function VitalsScreen() {
           }}
         />
         <VitalsResult analysis={result} />
+        {!result.demo ? (
+          <Section icon="restaurant-outline" title="Eat for these readings" subtitle="Today’s meal plan, adjusted for what you just measured">
+            <Button
+              title="Plan today’s meals"
+              icon="calendar"
+              onPress={() => router.navigate({ pathname: "/planner", params: { vitals: JSON.stringify(vitalsContextFrom(result)) } })}
+            />
+          </Section>
+        ) : null}
         <Section icon="document-attach-outline" title="Your report" subtitle="A PDF with these results and the ECG sample">
           <Field label="Name on the report (optional)" value={name} onChangeText={setName} maxLength={80} />
           <Button title={sharing ? "Creating PDF…" : "Share PDF report"} icon="share-outline" onPress={sharePdf} loading={sharing} />

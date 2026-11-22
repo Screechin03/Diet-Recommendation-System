@@ -1,0 +1,473 @@
+{
+ "recipes": 375703,
+ "usable": 341128,
+ "train": 272902,
+ "test": 68226,
+ "ingredients": 2229,
+ "methods": {
+  "equal-mass": {
+   "ProteinContent": {
+    "spearman": 0.8148156813752097,
+    "r2_log": 0.5645260810852051,
+    "median_rel_err": 0.40164151787757874,
+    "within_30pct": 0.42828247295752353
+   },
+   "FatContent": {
+    "spearman": 0.7310536394182187,
+    "r2_log": 0.433441698551178,
+    "median_rel_err": 0.4132331609725952,
+    "within_30pct": 0.44452261601149123
+   },
+   "CarbohydrateContent": {
+    "spearman": 0.6081306763675817,
+    "r2_log": 0.17165184020996094,
+    "median_rel_err": 0.3787175416946411,
+    "within_30pct": 0.43807346173013223
+   },
+   "FiberContent": {
+    "spearman": 0.48477079618886976,
+    "r2_log": -0.8346729278564453,
+    "median_rel_err": 0.8682164549827576,
+    "within_30pct": 0.21825990091753877
+   },
+   "SugarContent": {
+    "spearman": 0.6770171765073868,
+    "r2_log": 0.28568923473358154,
+    "median_rel_err": 0.5534844398498535,
+    "within_30pct": 0.3212118547181426
+   },
+   "SodiumContent": {
+    "spearman": 0.44043242352524065,
+    "r2_log": -1.7232022285461426,
+    "median_rel_err": 2.736501455307007,
+    "within_30pct": 0.19621551901034795
+   },
+   "SaturatedFatContent": {
+    "spearman": 0.7569531810030121,
+    "r2_log": 0.4672463536262512,
+    "median_rel_err": 0.46097737550735474,
+    "within_30pct": 0.4249699528039164
+   },
+   "CholesterolContent": {
+    "spearman": 0.6759510260915284,
+    "r2_log": 0.42487215995788574,
+    "median_rel_err": 0.46393176913261414,
+    "within_30pct": 0.43112596370885
+   }
+  },
+  "equal-energy": {
+   "ProteinContent": {
+    "spearman": 0.8441949285795661,
+    "r2_log": 0.6923592224000524,
+    "median_rel_err": 0.3844879056991383,
+    "within_30pct": 0.4379415472107408
+   },
+   "FatContent": {
+    "spearman": 0.7665537649728928,
+    "r2_log": 0.507241459286732,
+    "median_rel_err": 0.3947620727365835,
+    "within_30pct": 0.42409052267464015
+   },
+   "CarbohydrateContent": {
+    "spearman": 0.653990101736832,
+    "r2_log": 0.050709773033859595,
+    "median_rel_err": 0.4315029368622296,
+    "within_30pct": 0.40736669304957057
+   },
+   "FiberContent": {
+    "spearman": 0.5517206482092152,
+    "r2_log": -1.6877319478636492,
+    "median_rel_err": 2.0073474640204694,
+    "within_30pct": 0.14849177732829127
+   },
+   "SugarContent": {
+    "spearman": 0.6022433522669662,
+    "r2_log": -0.12324594991930748,
+    "median_rel_err": 1.006766489338599,
+    "within_30pct": 0.2390584234749216
+   },
+   "SodiumContent": {
+    "spearman": 0.5184646794781782,
+    "r2_log": -0.39716842793698226,
+    "median_rel_err": 0.7560183775749741,
+    "within_30pct": 0.24206314308328203
+   },
+   "SaturatedFatContent": {
+    "spearman": 0.7750910965052126,
+    "r2_log": 0.498572674573343,
+    "median_rel_err": 0.44117052723730177,
+    "within_30pct": 0.4039808870518571
+   },
+   "CholesterolContent": {
+    "spearman": 0.6792864778507184,
+    "r2_log": 0.41985378885880875,
+    "median_rel_err": 0.551097405876236,
+    "within_30pct": 0.37879987101691437
+   }
+  },
+  "learned": {
+   "ProteinContent": {
+    "spearman": 0.8430495604774835,
+    "r2_log": 0.6719413995742798,
+    "median_rel_err": 0.33675283193588257,
+    "within_30pct": 0.501407088206842
+   },
+   "FatContent": {
+    "spearman": 0.754223767719885,
+    "r2_log": 0.4960382580757141,
+    "median_rel_err": 0.3530060648918152,
+    "within_30pct": 0.49217307184944153
+   },
+   "CarbohydrateContent": {
+    "spearman": 0.6541151002389284,
+    "r2_log": 0.2755483388900757,
+    "median_rel_err": 0.32705485820770264,
+    "within_30pct": 0.4903116114091402
+   },
+   "FiberContent": {
+    "spearman": 0.5759685506945303,
+    "r2_log": -0.07594096660614014,
+    "median_rel_err": 0.623231053352356,
+    "within_30pct": 0.29477032216457066
+   },
+   "SugarContent": {
+    "spearman": 0.6880952301104293,
+    "r2_log": 0.3677437901496887,
+    "median_rel_err": 0.5169202089309692,
+    "within_30pct": 0.3341541347873245
+   },
+   "SodiumContent": {
+    "spearman": 0.6504253575080753,
+    "r2_log": 0.385240375995636,
+    "median_rel_err": 0.5340041518211365,
+    "within_30pct": 0.343827866209363
+   },
+   "SaturatedFatContent": {
+    "spearman": 0.7752492957810395,
+    "r2_log": 0.5256700813770294,
+    "median_rel_err": 0.40896421670913696,
+    "within_30pct": 0.4594729282091871
+   },
+   "CholesterolContent": {
+    "spearman": 0.7256080330928967,
+    "r2_log": 0.4821203351020813,
+    "median_rel_err": 0.3889067769050598,
+    "within_30pct": 0.47196083604490957
+   }
+  },
+  "transfer": {
+   "ProteinContent": {
+    "spearman": 0.8530302527262135,
+    "r2_log": 0.7041652500629425,
+    "median_rel_err": 0.3260751962661743,
+    "within_30pct": 0.5098935889543575
+   },
+   "FatContent": {
+    "spearman": 0.7723335363067504,
+    "r2_log": 0.5441903173923492,
+    "median_rel_err": 0.32877853512763977,
+    "within_30pct": 0.5133087092897136
+   },
+   "CarbohydrateContent": {
+    "spearman": 0.6635263311178718,
+    "r2_log": 0.27033257484436035,
+    "median_rel_err": 0.3227834105491638,
+    "within_30pct": 0.4924955295635095
+   },
+   "FiberContent": {
+    "spearman": 0.516924924375714,
+    "r2_log": -0.8582746982574463,
+    "median_rel_err": 0.9917799234390259,
+    "within_30pct": 0.22969249259812974
+   },
+   "SugarContent": {
+    "spearman": 0.6881700837946987,
+    "r2_log": 0.39359188079833984,
+    "median_rel_err": 0.5124740600585938,
+    "within_30pct": 0.33510685076070706
+   },
+   "SodiumContent": {
+    "spearman": 0.42991058295773543,
+    "r2_log": -2.184480667114258,
+    "median_rel_err": 3.8822343349456787,
+    "within_30pct": 0.19567320376396094
+   },
+   "SaturatedFatContent": {
+    "spearman": 0.7851934058898177,
+    "r2_log": 0.5609605610370636,
+    "median_rel_err": 0.38956087827682495,
+    "within_30pct": 0.4723419224342626
+   },
+   "CholesterolContent": {
+    "spearman": 0.7271164904526108,
+    "r2_log": 0.4811662435531616,
+    "median_rel_err": 0.38234907388687134,
+    "within_30pct": 0.4747310409521297
+   }
+  },
+  "energy-prior": {
+   "ProteinContent": {
+    "spearman": 0.8442168748068738,
+    "r2_log": 0.6923706233501434,
+    "median_rel_err": 0.3847150504589081,
+    "within_30pct": 0.43797086154838333
+   },
+   "FatContent": {
+    "spearman": 0.7667996206793783,
+    "r2_log": 0.507338672876358,
+    "median_rel_err": 0.39467403292655945,
+    "within_30pct": 0.42397326532407
+   },
+   "CarbohydrateContent": {
+    "spearman": 0.6540999431118746,
+    "r2_log": 0.050366222858428955,
+    "median_rel_err": 0.43195462226867676,
+    "within_30pct": 0.4069856066602175
+   },
+   "FiberContent": {
+    "spearman": 0.5508018551417889,
+    "r2_log": -1.6850175857543945,
+    "median_rel_err": 2.0037882328033447,
+    "within_30pct": 0.1490634069123208
+   },
+   "SugarContent": {
+    "spearman": 0.601573749840726,
+    "r2_log": -0.12658309936523438,
+    "median_rel_err": 1.0127582550048828,
+    "within_30pct": 0.2385014510597133
+   },
+   "SodiumContent": {
+    "spearman": 0.4488655222934552,
+    "r2_log": -1.5205929279327393,
+    "median_rel_err": 3.5667688846588135,
+    "within_30pct": 0.1712103890012605
+   },
+   "SaturatedFatContent": {
+    "spearman": 0.7751546967282975,
+    "r2_log": 0.4987189769744873,
+    "median_rel_err": 0.4412296414375305,
+    "within_30pct": 0.4037024008442529
+   },
+   "CholesterolContent": {
+    "spearman": 0.6794266946645445,
+    "r2_log": 0.41998982429504395,
+    "median_rel_err": 0.5512694120407104,
+    "within_30pct": 0.3787412423416293
+   }
+  },
+  "anchored-transfer": {
+   "ProteinContent": {
+    "spearman": 0.8487656787609245,
+    "r2_log": 0.7025594711303711,
+    "median_rel_err": 0.3595489263534546,
+    "within_30pct": 0.4654970245947293
+   },
+   "FatContent": {
+    "spearman": 0.764192655293026,
+    "r2_log": 0.5394399166107178,
+    "median_rel_err": 0.3690049946308136,
+    "within_30pct": 0.46139301732477356
+   },
+   "CarbohydrateContent": {
+    "spearman": 0.6577519140001353,
+    "r2_log": 0.1134076714515686,
+    "median_rel_err": 0.3961986005306244,
+    "within_30pct": 0.4269193562571454
+   },
+   "FiberContent": {
+    "spearman": 0.5468492637205721,
+    "r2_log": -1.5831069946289062,
+    "median_rel_err": 1.8854069709777832,
+    "within_30pct": 0.15778442236097676
+   },
+   "SugarContent": {
+    "spearman": 0.6122403649220376,
+    "r2_log": 0.00228196382522583,
+    "median_rel_err": 0.8711028695106506,
+    "within_30pct": 0.24986075689619794
+   },
+   "SodiumContent": {
+    "spearman": 0.45008059390943744,
+    "r2_log": -1.5189824104309082,
+    "median_rel_err": 3.5797247886657715,
+    "within_30pct": 0.17418579427197842
+   },
+   "SaturatedFatContent": {
+    "spearman": 0.7778344340705321,
+    "r2_log": 0.532718300819397,
+    "median_rel_err": 0.41737401485443115,
+    "within_30pct": 0.43333919620086186
+   },
+   "CholesterolContent": {
+    "spearman": 0.6927896396260611,
+    "r2_log": 0.4490092992782593,
+    "median_rel_err": 0.4908311367034912,
+    "within_30pct": 0.4061354908685838
+   }
+  }
+ },
+ "held_out_nutrient_score": {
+  "equal-mass": 0.46260160985705523,
+  "equal-energy": 0.5350926638436967,
+  "energy-prior": 0.49983368871762207,
+  "transfer": 0.4734177536667247,
+  "anchored-transfer": 0.49846492881500476
+ },
+ "external": {
+  "recipes": 13707,
+  "dishes": 217,
+  "methods": {
+   "equal-mass": {
+    "iron_mg": {
+     "median_abs_log2": 0.9636033651910976,
+     "within_2x": 0.5156865606303809,
+     "spearman": 0.13868729567452653,
+     "n": 13706
+    },
+    "folate_ug": {
+     "median_abs_log2": 0.8216045947317911,
+     "within_2x": 0.5679317314170222,
+     "spearman": 0.25251163919667335,
+     "n": 13359
+    },
+    "calcium_mg": {
+     "median_abs_log2": 1.6777885368266425,
+     "within_2x": 0.34398948981826144,
+     "spearman": 0.12031941763756199,
+     "n": 13701
+    },
+    "within_2x_mean": 0.47586926062188817
+   },
+   "equal-energy": {
+    "iron_mg": {
+     "median_abs_log2": 1.5003671424699914,
+     "within_2x": 0.38435721581788995,
+     "spearman": 0.12102084523982332,
+     "n": 13706
+    },
+    "folate_ug": {
+     "median_abs_log2": 0.787331701212891,
+     "within_2x": 0.5873194101354892,
+     "spearman": 0.24999790466101285,
+     "n": 13359
+    },
+    "calcium_mg": {
+     "median_abs_log2": 2.014172241755107,
+     "within_2x": 0.2604919348952631,
+     "spearman": 0.12583120927851382,
+     "n": 13701
+    },
+    "within_2x_mean": 0.41072285361621413
+   },
+   "learned": {
+    "iron_mg": {
+     "median_abs_log2": 0.6789236070118079,
+     "within_2x": 0.6229388588939151,
+     "spearman": 0.2000430659604873,
+     "n": 13706
+    },
+    "folate_ug": {
+     "median_abs_log2": 1.038264941464759,
+     "within_2x": 0.4809491728422786,
+     "spearman": 0.2297464241843513,
+     "n": 13359
+    },
+    "calcium_mg": {
+     "median_abs_log2": 1.2844351641710352,
+     "within_2x": 0.41478724180716736,
+     "spearman": 0.3487064567136682,
+     "n": 13701
+    },
+    "within_2x_mean": 0.5062250911811204
+   },
+   "transfer": {
+    "iron_mg": {
+     "median_abs_log2": 1.097492110635745,
+     "within_2x": 0.4630089012111484,
+     "spearman": 0.13767358133788496,
+     "n": 13706
+    },
+    "folate_ug": {
+     "median_abs_log2": 0.8630250047388701,
+     "within_2x": 0.5543828130848117,
+     "spearman": 0.2440072579554119,
+     "n": 13359
+    },
+    "calcium_mg": {
+     "median_abs_log2": 1.7277407992081664,
+     "within_2x": 0.33187358586964455,
+     "spearman": 0.11872001342262291,
+     "n": 13701
+    },
+    "within_2x_mean": 0.4497551000552016
+   },
+   "anchored-transfer": {
+    "iron_mg": {
+     "median_abs_log2": 1.4856177811048616,
+     "within_2x": 0.3847949803005983,
+     "spearman": 0.12216154264176479,
+     "n": 13706
+    },
+    "folate_ug": {
+     "median_abs_log2": 0.8172832207056826,
+     "within_2x": 0.5742196272176061,
+     "spearman": 0.2525468176940258,
+     "n": 13359
+    },
+    "calcium_mg": {
+     "median_abs_log2": 1.9817845509066296,
+     "within_2x": 0.28129333625282826,
+     "spearman": 0.12809038800197103,
+     "n": 13701
+    },
+    "within_2x_mean": 0.4134359812570109
+   }
+  }
+ },
+ "chosen_for_micronutrients": "learned",
+ "typical_amounts": {
+  "smallest": [
+   "salt",
+   "baking soda",
+   "kosher salt",
+   "sea salt",
+   "seasoning salt",
+   "baking powder",
+   "cinnamon",
+   "coarse salt",
+   "pepper",
+   "ground cinnamon",
+   "paprika",
+   "black pepper"
+  ],
+  "largest": [
+   "boneless skinless chicken breast",
+   "potato",
+   "salmon fillet",
+   "chicken breast",
+   "milk",
+   "boneless skinless chicken breast halve",
+   "chicken",
+   "ground beef",
+   "chicken thigh",
+   "chicken broth",
+   "garlic clove",
+   "lean ground beef"
+  ]
+ },
+ "micronutrients": {
+  "iron_mg": {
+   "median": 1.9361391067504883,
+   "p90": 10.53421230316162
+  },
+  "folate_ug": {
+   "median": 37.63648986816406,
+   "p90": 154.42406921386717
+  },
+  "calcium_mg": {
+   "median": 112.73377227783203,
+   "p90": 414.0688171386719
+  }
+ },
+ "estimated_recipes": 369428
+}

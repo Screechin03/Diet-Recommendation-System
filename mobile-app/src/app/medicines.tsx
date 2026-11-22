@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { Text, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Body, Button, Card, Chips, ErrorBox, PageHeader, Screen, Section, SectionLabel } from "@/components/ui";
 import { ShareWithDoctor } from "@/components/Care";
 import { MedCheckView, MedicineRows, MedicineSearch, type EditableMedicine } from "@/components/Meds";
@@ -106,6 +106,13 @@ export default function MedicinesScreen() {
       <Screen key={`result-${runId}`}>
         <MedCheckView result={result} />
         <ShareWithDoctor key={runId} build={() => medCheckRecord(result)} what="this medicine check" />
+        <Button
+          title="Plan meals around these medicines"
+          icon="restaurant-outline"
+          onPress={() =>
+            router.navigate({ pathname: "/planner", params: { medicines: JSON.stringify(items.filter((m) => m.name.trim()).map((m) => [m.name, m.dose].filter(Boolean).join(" "))) } })
+          }
+        />
         <Button title="Edit medicines" variant="secondary" onPress={() => setResult(null)} />
       </Screen>
     );

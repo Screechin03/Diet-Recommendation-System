@@ -7,6 +7,7 @@ import { useLiveData } from "@/components/care/hooks";
 import { ShareWithDoctor } from "@/components/care/ShareWithDoctor";
 import { Button, buttonClass, ClockIcon, Notice, ShieldIcon } from "@/components/care/ui";
 import { MedCheckView } from "@/components/meds/MedCheckView";
+import { PlanFromHere } from "@/components/mealplan/PlanFromHere";
 import { MedicineRows, MedicineSearch, type EditableMedicine } from "@/components/meds/MedicineListEditor";
 import { AlertIcon, FileIcon, PillIcon } from "@/components/report/icons";
 import { careErrorMessage, updatePregnancyMonth } from "@/lib/care";
@@ -187,6 +188,11 @@ export default function MedicinesPage() {
             <>
               <MedCheckView result={result} />
               <ShareWithDoctor key={runId} build={() => medCheckRecord(result)} what="this medicine check" />
+              <PlanFromHere
+                handoff={{ medicines: items.filter((m) => m.name.trim()).map((m) => [m.name, m.dose].filter(Boolean).join(" ")) }}
+                title="Plan meals around these medicines"
+                text="Timing advice for iron, calcium and thyroid tablets, and salt or sugar limits where your medicines need them."
+              />
             </>
           ) : (
             <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 bg-white/60 p-8 dark:border-zinc-800 dark:bg-zinc-950/40">
