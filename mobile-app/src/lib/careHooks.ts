@@ -6,6 +6,7 @@ import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAuth } from "./auth";
 import { doctorInbox, getCareLinks, onCareChanged, patientUnread, type CareLink } from "./care";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
 const remoteListeners = new Set<() => void>();
@@ -118,19 +119,40 @@ export function useCareBadge(): number {
     };
   }, [load]);
 
-  useEffect(() => {
-    if (!key || !supabase) return;
-    const client = supabase;
+  useEffect(() => (key ? acquireRealtime(key) : undefined), [key]);
+
+  return state.key === key ? state.count : 0;
+}
+
+// One Realtime channel per signed-in user, shared by every component that shows a badge (tab bar, Home…).
+// Supabase returns the same channel object for the same name, and adding listeners to an already
+// subscribed channel throws, so a second subscriber must reuse the first one's channel.
+const channels = new Map<string, { channel: RealtimeChannel; users: number }>();
+
+function acquireRealtime(key: string): () => void {
+  const client = supabase;
+  if (!client) return () => undefined;
+  let entry = channels.get(key);
+  if (!entry) {
     const remote = () => remoteListeners.forEach((fn) => fn());
     const channel = client
       .channel(`care-${key}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "care_messages" }, remote)
       .on("postgres_changes", { event: "*", schema: "public", table: "care_links" }, remote)
       .subscribe();
-    return () => {
-      void client.removeChannel(channel);
-    };
-  }, [key]);
-
-  return state.key === key ? state.count : 0;
+    entry = { channel, users: 0 };
+    channels.set(key, entry);
+  }
+  entry.users += 1;
+  const mine = entry;
+  return () => {
+    mine.users -= 1;
+    // Close a moment later, so an immediate remount (React dev mode, navigation) reuses the channel.
+    setTimeout(() => {
+      if (mine.users <= 0 && channels.get(key) === mine) {
+        channels.delete(key);
+        void client.removeChannel(mine.channel);
+      }
+    }, 1000);
+  };
 }

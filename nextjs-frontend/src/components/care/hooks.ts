@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { doctorInbox, getCareLinks, patientUnread, type CareLink } from "@/lib/care";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 /**
@@ -105,24 +106,44 @@ export function useCareBadge(): number {
 
   useLiveData(load, 30_000);
 
-  useEffect(() => {
-    if (!key) return;
-    let supabase;
-    try {
-      supabase = getSupabaseBrowserClient();
-    } catch {
-      return;
-    }
+  useEffect(() => (key ? acquireRealtime(key) : undefined), [key]);
+
+  return state.key === key ? state.count : 0;
+}
+
+// One Realtime channel per signed-in user, shared by every component that shows a badge (header, home…).
+// Supabase returns the same channel object for the same name, and adding listeners to an already
+// subscribed channel throws, so a second subscriber must reuse the first one's channel.
+const channels = new Map<string, { channel: RealtimeChannel; users: number }>();
+
+function acquireRealtime(key: string): () => void {
+  let client: ReturnType<typeof getSupabaseBrowserClient>;
+  try {
+    client = getSupabaseBrowserClient();
+  } catch {
+    return () => undefined;
+  }
+  let entry = channels.get(key);
+  if (!entry) {
     const remote = () => window.dispatchEvent(new Event("care:remote"));
-    const channel = supabase
+    const channel = client
       .channel(`care-${key}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "care_messages" }, remote)
       .on("postgres_changes", { event: "*", schema: "public", table: "care_links" }, remote)
       .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [key]);
-
-  return state.key === key ? state.count : 0;
+    entry = { channel, users: 0 };
+    channels.set(key, entry);
+  }
+  entry.users += 1;
+  const mine = entry;
+  return () => {
+    mine.users -= 1;
+    // Close a moment later, so an immediate remount (React dev mode, navigation) reuses the channel.
+    setTimeout(() => {
+      if (mine.users <= 0 && channels.get(key) === mine) {
+        channels.delete(key);
+        void client.removeChannel(mine.channel);
+      }
+    }, 1000);
+  };
 }
