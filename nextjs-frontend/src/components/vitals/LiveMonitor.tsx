@@ -224,6 +224,13 @@ export function LiveMonitor({
     setPhase("recording");
   }
 
+  /** Throws the recording away and goes back to the live view. */
+  function cancelRecording() {
+    recRef.current = null;
+    setElapsed(0);
+    setPhase("live");
+  }
+
   async function analyzeLines(lines: string[]) {
     setPhase("analyzing");
     setError(null);
@@ -363,7 +370,9 @@ export function LiveMonitor({
               <span className="flex items-center gap-2 font-medium">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-rose-500" /> Recording {formatDuration(elapsed)}
               </span>
-              <span className="text-xs text-zinc-500">{canStop ? "Ready to analyse" : `at least ${formatDuration(MIN_RECORDING_S)} needed`}</span>
+              <span className="text-xs text-zinc-500">
+                {canStop ? "Ready to analyse" : `${formatDuration(MIN_RECORDING_S - elapsed)} more needed (minimum ${formatDuration(MIN_RECORDING_S)})`}
+              </span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
               <div className="h-full rounded-full bg-rose-500 transition-all" style={{ width: `${Math.min(100, (elapsed / 120) * 100)}%` }} />
@@ -382,18 +391,34 @@ export function LiveMonitor({
             <button onClick={startRecording} className="h-11 rounded-xl bg-rose-600 px-5 text-sm font-semibold text-white hover:bg-rose-500">
               Start recording
             </button>
+          ) : phase === "analyzing" ? (
+            <button disabled className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white opacity-80">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Analysing…
+            </button>
+          ) : canStop ? (
+            <button onClick={() => void stopAndAnalyze()} className="h-11 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-500">
+              Stop and analyse
+            </button>
           ) : (
             <button
-              onClick={() => void stopAndAnalyze()}
-              disabled={!canStop || phase === "analyzing"}
-              className="h-11 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-zinc-900"
+              disabled
+              title={`An analysis needs at least ${formatDuration(MIN_RECORDING_S)} of data`}
+              className="h-11 cursor-not-allowed rounded-xl bg-zinc-100 px-5 text-sm font-semibold tabular-nums text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300"
             >
-              {phase === "analyzing" ? "Analysing…" : "Stop and analyse"}
+              Analyse in {formatDuration(MIN_RECORDING_S - elapsed)}
             </button>
           )}
-          {source.kind === "demo" && phase === "live" ? (
+          {phase === "recording" ? (
+            <button onClick={cancelRecording} className="h-11 rounded-xl px-4 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900">
+              Cancel
+            </button>
+          ) : null}
+          {source.kind === "demo" && (phase === "live" || phase === "recording") ? (
             <button
-              onClick={() => void analyzeLines(demoLinesRef.current)}
+              onClick={() => {
+                recRef.current = null; // the full sample replaces any partial recording
+                void analyzeLines(demoLinesRef.current);
+              }}
               className="h-11 rounded-xl border border-zinc-200 px-4 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
             >
               Skip ahead: analyse the full sample
