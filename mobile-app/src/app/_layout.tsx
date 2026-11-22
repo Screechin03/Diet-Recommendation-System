@@ -26,9 +26,10 @@ function RootNavigator() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: t.card },
+        headerStyle: { backgroundColor: t.bg },
+        headerShadowVisible: false,
         headerTintColor: t.primary,
-        headerTitleStyle: { color: t.text },
+        headerTitleStyle: { color: t.text, fontWeight: "800", fontSize: 17 },
         contentStyle: { backgroundColor: t.bg },
         // Show only the arrow: otherwise iOS labels it with the route group name "(tabs)".
         headerBackButtonDisplayMode: "minimal",
@@ -48,7 +49,7 @@ function RootNavigator() {
         <Stack.Screen name="doctor/record/[id]" options={{ title: "Record" }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
-        <Stack.Screen name="login" options={{ title: "Log in", headerBackVisible: false }} />
+        <Stack.Screen name="login" options={{ title: "Log in", headerShown: false }} />
         <Stack.Screen name="signup" options={{ title: "Create account" }} />
         <Stack.Screen name="doctor-login" options={{ title: "Doctor login" }} />
         <Stack.Screen name="doctor-signup" options={{ title: "Doctor account" }} />

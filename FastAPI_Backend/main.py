@@ -33,6 +33,7 @@ from gemini_client import gemini_enabled
 from gemini_refiner import refine_recipe_tips, refine_risk_explanation
 from model import SEARCH_COLUMN, build_search_text, output_recommended_recipes, recommend
 from ocr import handwriting as handwriting_ocr
+from insights import latest_news
 from med_safety.catalog import get_catalog as get_med_catalog
 from med_safety.checker import check_medicines
 from med_safety.model_layer import get_model as get_med_model
@@ -505,6 +506,7 @@ def endpoints():
             {"method": "POST", "path": "/meds/check",
              "purpose": "Pregnancy safety, interactions and timing plan for a list of medicines (JSON: medicines, pregnancy_month)"},
             {"method": "GET", "path": "/meds/model", "purpose": "Status and test metrics of the drug-interaction graph model"},
+            {"method": "GET", "path": "/insights/news", "purpose": "One pregnancy research news item (ScienceDaily), summarised in plain language"},
             {"method": "GET", "path": "/health", "purpose": "Readiness check"},
         ],
     }
@@ -706,6 +708,12 @@ def meds_check(body: MedCheckIn):
 @app.get("/meds/model")
 def meds_model():
     return get_med_model().status()
+
+
+@app.get("/insights/news")
+def insights_news():
+    """Cached for 6 h; falls back to a hand-checked daily tip if the feed is unavailable."""
+    return latest_news()
 
 
 class VitalsAnalyzeIn(BaseModel):

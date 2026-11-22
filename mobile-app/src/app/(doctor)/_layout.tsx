@@ -1,7 +1,7 @@
 import { ActivityIndicator, View } from "react-native";
 import { Redirect, Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useTheme } from "@/components/theme";
+import { elevation, useTheme } from "@/components/theme";
 import { useAuth } from "@/lib/auth";
 import { useCareBadge } from "@/lib/careHooks";
 
@@ -24,10 +24,13 @@ export default function DoctorTabs() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: t.info,
-        tabBarInactiveTintColor: t.muted,
-        tabBarStyle: { backgroundColor: t.card, borderTopColor: t.border },
-        headerStyle: { backgroundColor: t.card },
-        headerTitleStyle: { color: t.text },
+        tabBarInactiveTintColor: t.subtle,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "700" },
+        tabBarStyle: { backgroundColor: t.card, borderTopWidth: 0, ...elevation(t, 2) },
+        headerStyle: { backgroundColor: t.bg },
+        headerShadowVisible: false,
+        headerTitleStyle: { color: t.text, fontWeight: "800", fontSize: 18 },
+        sceneStyle: { backgroundColor: t.bg },
       }}
     >
       <Tabs.Screen

@@ -169,3 +169,34 @@ def test_api(client):
     assert client.post("/meds/check", json={"medicines": []}).status_code == 422
     assert client.post("/meds/check", json={"medicines": [{"name": "x"}], "pregnancy_month": 12}).status_code == 422
     assert client.get("/meds/model").status_code == 200
+
+
+def test_news_card_falls_back_to_a_tip(monkeypatch):
+    import insights
+
+    def broken(*a, **k):
+        raise insights.requests.ConnectionError("offline")
+
+    monkeypatch.setattr(insights.requests, "get", broken)
+    insights._cache.update(at=0.0, value=None)
+    card = insights.latest_news(force=True)
+    assert card["kind"] == "tip" and card["headline"] and card["url"] is None
+
+
+def test_news_card_uses_the_feed(monkeypatch):
+    import insights
+
+    rss = b"""<rss><channel><item><title>Iron levels in pregnancy linked to sleep</title>
+    <link>https://www.sciencedaily.com/releases/x.htm</link><description>A study of 2,000 women...</description>
+    <pubDate>Fri, 20 Nov 2026 10:00:00 EST</pubDate></item></channel></rss>"""
+
+    class R:
+        content = rss
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(insights.requests, "get", lambda *a, **k: R())
+    monkeypatch.setattr(insights, "gemini_enabled", lambda: False)
+    insights._cache.update(at=0.0, value=None)
+    card = insights.latest_news(force=True)
+    assert card["kind"] == "news" and card["url"].startswith("https://www.sciencedaily.com") and card["published"].startswith("2026-11-20")

@@ -1,98 +1,73 @@
-import { Pressable, Text, View } from "react-native";
-import { router, type Href } from "expo-router";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import type { ComponentProps } from "react";
-import { Body, Disclaimer, H1, Screen } from "@/components/ui";
-import { useTheme } from "@/components/theme";
+import { useCallback, useEffect, useState } from "react";
+import { View } from "react-native";
+import { router } from "expo-router";
+import { Disclaimer, Screen } from "@/components/ui";
+import { DoctorWidget, FocusWidget, GreetingHeader, JourneyCard, NewsWidget, QuickActions, SectionTitle, ToolList } from "@/components/Widgets";
 import { useAuth } from "@/lib/auth";
-
-const FEATURES: Array<{ href: Href; icon: ComponentProps<typeof Ionicons>["name"]; title: string; text: string }> = [
-  {
-    href: "/planner",
-    icon: "nutrition-outline",
-    title: "Pregnancy diet plan",
-    text: "Recipes matched to your trimester, health conditions and dietary needs.",
-  },
-  {
-    href: "/health",
-    icon: "pulse-outline",
-    title: "Health risk check",
-    text: "Enter your vitals and get an ML-based risk assessment with next steps.",
-  },
-  {
-    href: "/vitals",
-    icon: "pulse-outline",
-    title: "Device vital signs",
-    text: "Heart rate, oxygen, temperature and ECG from the MamaCare device, with a report for your doctor.",
-  },
-  {
-    href: "/medicines",
-    icon: "medkit-outline",
-    title: "Medicine safety",
-    text: "Is a medicine or supplement OK for your month of pregnancy? Clashes and a daily timing plan.",
-  },
-  {
-    href: "/report",
-    icon: "document-text-outline",
-    title: "Prescription reader",
-    text: "Snap a photo of a prescription or lab report and get a clear summary plus diet guidance.",
-  },
-  {
-    href: "/account",
-    icon: "medkit-outline",
-    title: "My care",
-    text: "Choose your doctor, share your reports and readings, and get their reviews and diet advice.",
-  },
-];
+import { updatePregnancyMonth } from "@/lib/care";
+import { useCareBadge, useCareLinks } from "@/lib/careHooks";
+import { getNews, type NewsCard } from "@/lib/insights";
+import { loadProfile, saveProfile } from "@/lib/profile";
 
 export default function Home() {
-  const t = useTheme();
-  const { user } = useAuth();
+  const { user, account, careAvailable, refreshAccount } = useAuth();
+  const { active, loading: careLoading } = useCareLinks();
+  const unread = useCareBadge();
+
+  const [month, setMonth] = useState(() => account?.patient?.pregnancy_month ?? loadProfile().pregnancy_month);
+  const serverMonth = account?.patient?.pregnancy_month;
+  useEffect(() => {
+    if (serverMonth) setMonth(serverMonth);
+  }, [serverMonth]);
+
+  const [news, setNews] = useState<{ value: NewsCard | null; loading: boolean }>({ value: null, loading: true });
+  useEffect(() => {
+    let live = true;
+    void getNews().then((value) => live && setNews({ value, loading: false }));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const changeMonth = useCallback(
+    (m: number) => {
+      setMonth(m);
+      saveProfile({ ...loadProfile(), pregnancy_month: m });
+      if (user && careAvailable) void updatePregnancyMonth(user.id, m).then(refreshAccount).catch(() => undefined);
+    },
+    [user, careAvailable, refreshAccount],
+  );
+
+  const name = account?.patient?.full_name ?? (user?.user_metadata?.full_name as string | undefined) ?? null;
+
   return (
-    <Screen>
-      <View style={{ gap: 8, paddingTop: 4 }}>
-        <Text style={{ color: t.primary, fontWeight: "700", letterSpacing: 1, fontSize: 12 }}>MAMACARE</Text>
-        <H1>{user ? "Welcome back" : "Healthy eating for you and your baby"}</H1>
-        <Body muted>Personalised pregnancy nutrition, health checks and report reading in one place.</Body>
-      </View>
+    <Screen safeTop>
+      <GreetingHeader name={name} onAvatar={() => router.navigate("/account")} />
+      <JourneyCard month={month} onChangeMonth={changeMonth} />
+      <QuickActions
+        items={[
+          { icon: "scan-outline", label: "Scan Rx", href: "/report" },
+          { icon: "medkit-outline", label: "Medicines", href: "/medicines" },
+          { icon: "pulse-outline", label: "Vitals", href: "/vitals" },
+          { icon: "restaurant-outline", label: "Meals", href: "/planner" },
+        ]}
+      />
+      <FocusWidget month={month} />
+      {careAvailable && user ? <DoctorWidget link={active} loading={careLoading} unread={unread} /> : null}
 
-      {FEATURES.map((f) => (
-        <Pressable
-          key={f.title}
-          onPress={() => router.navigate(f.href)}
-          accessibilityRole="button"
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            gap: 14,
-            alignItems: "center",
-            padding: 16,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: t.border,
-            backgroundColor: t.card,
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          <View
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 23,
-              backgroundColor: t.primarySoft,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons name={f.icon} size={24} color={t.primary} />
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: t.text, fontWeight: "700", fontSize: 16 }}>{f.title}</Text>
-            <Text style={{ color: t.muted, lineHeight: 20 }}>{f.text}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={t.muted} />
-        </Pressable>
-      ))}
+      <SectionTitle>Today’s read</SectionTitle>
+      <NewsWidget news={news.value} loading={news.loading} />
 
+      <SectionTitle>More tools</SectionTitle>
+      <ToolList
+        items={[
+          { icon: "analytics-outline", title: "Health risk check", text: "Your vitals through our risk model", href: "/health" },
+          { icon: "heart-outline", title: "Saved recipes", text: "Meals you’ve kept for later", href: "/saved" },
+          { icon: "time-outline", title: "Recommendation history", text: "Every plan you’ve generated", href: "/history" },
+          { icon: "folder-open-outline", title: "My records", text: "Reports, readings and doctor reviews", href: "/account" },
+        ]}
+      />
+      <View style={{ height: 4 }} />
       <Disclaimer />
     </Screen>
   );

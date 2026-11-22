@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
-import { Body, Button, ErrorBox, Field, Screen } from "@/components/ui";
+import { AuthHeader, Button, Card, ErrorBox, Field, PasswordField, Screen } from "@/components/ui";
 import { useTheme } from "@/components/theme";
 import { careErrorMessage } from "@/lib/care";
 import { requireSupabase } from "@/lib/supabase";
@@ -31,14 +31,13 @@ export default function DoctorLoginScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: 6 }}>
-        <Text style={{ color: t.info, fontWeight: "800", letterSpacing: 1.6, fontSize: 11 }}>MAMACARE FOR DOCTORS</Text>
-        <Body muted>Sign in to see your patients’ records, reviews and messages.</Body>
-      </View>
-      <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" />
-      <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" textContentType="password" />
-      <ErrorBox message={error} />
-      <Button title="Log in" onPress={submit} loading={loading} disabled={!email || !password} />
+      <AuthHeader doctor title="Doctor login" subtitle="See your patients’ records, reviews and messages." />
+      <Card style={{ gap: 16 }}>
+        <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" />
+        <PasswordField label="Password" value={password} onChangeText={setPassword} autoComplete="password" textContentType="password" />
+        <ErrorBox message={error} />
+        <Button title="Log in" onPress={submit} loading={loading} disabled={!email || !password} />
+      </Card>
       <Pressable onPress={() => router.replace("/doctor-signup")} accessibilityRole="link" style={{ alignSelf: "center", padding: 8 }}>
         <Text style={{ color: t.info, fontWeight: "700" }}>New here? Create a doctor account</Text>
       </Pressable>

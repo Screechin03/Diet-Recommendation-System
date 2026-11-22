@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pregnancy Nutrition Guide",
+  title: "MamaCare · Pregnancy nutrition & care",
   description:
     "Pregnancy-focused nutrition recommendations and health analytics.",
 };
@@ -30,13 +30,14 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
+      <body className="min-h-full flex flex-col bg-[#f7f8f7] text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
         <AuthProvider>
           <SiteHeader />
           <main className="flex-1">{children}</main>
-          <footer className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-zinc-600 dark:text-zinc-400">
-              Always consult your healthcare provider before making significant dietary changes.
+          <footer className="border-t border-zinc-200/70 bg-white/60 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">MamaCare</span>
+              <span>General guidance, not medical advice. Always follow your clinician’s instructions.</span>
             </div>
           </footer>
         </AuthProvider>

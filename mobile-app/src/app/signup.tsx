@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { Body, Button, ErrorBox, Field, InfoBox, PasswordField, Screen } from "@/components/ui";
+import { AuthHeader, Button, Card, ErrorBox, Field, InfoBox, PasswordField, Screen } from "@/components/ui";
 import { apiBaseUrl } from "@/lib/api";
 import { requireSupabase } from "@/lib/supabase";
 
@@ -60,14 +60,16 @@ export default function SignupScreen() {
 
   return (
     <Screen>
+      <AuthHeader title="Create your account" subtitle="Takes a minute. Your plan, checks and records stay private to you and your doctor." />
+      <Card style={{ gap: 16 }}>
       <Field label="Full name" value={fullName} onChangeText={setFullName} autoComplete="name" textContentType="name" />
       <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" />
       <PasswordField label="Password" value={password} onChangeText={setPassword} hint="At least 6 characters" autoComplete="new-password" textContentType="newPassword" />
       <ErrorBox message={error} />
       <Button title="Create account" onPress={submit} loading={loading} disabled={!email || password.length < 6} />
-      <Body muted>Already have an account?</Body>
-      <Button title="Log in" variant="secondary" onPress={backToLogin} />
-      <Button title="I'm a doctor" variant="secondary" onPress={() => router.push("/doctor-signup")} />
+      </Card>
+      <Button title="I already have an account" variant="ghost" onPress={backToLogin} />
+      <Button title="I’m a doctor" variant="secondary" icon="medical-outline" onPress={() => router.push("/doctor-signup")} />
     </Screen>
   );
 }
