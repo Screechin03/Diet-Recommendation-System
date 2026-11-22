@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Chips, ErrorBox, InfoBox, Screen } from "@/components/ui";
+import { Chips, ErrorBox, InfoBox, Screen, SearchField } from "@/components/ui";
 import { Avatar, Pill } from "@/components/Care";
 import { useTheme } from "@/components/theme";
 import { useLiveData } from "@/lib/careHooks";
@@ -38,13 +38,7 @@ export default function DoctorPatientsScreen() {
         selected={[view]}
         onToggle={setView}
       />
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search patients"
-        placeholderTextColor={t.muted}
-        style={[st.search, { backgroundColor: t.input, borderColor: t.border, color: t.text }]}
-      />
+      <SearchField value={query} onChangeText={setQuery} placeholder="Search patients" />
       <ErrorBox message={error} />
       {rows === null && !error ? <ActivityIndicator color={t.info} /> : null}
       {rows && !shown.length ? (

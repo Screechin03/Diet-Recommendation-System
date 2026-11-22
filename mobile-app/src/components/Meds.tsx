@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useTheme } from "./theme";
+import { elevation, useTheme } from "./theme";
 import { Card, Chips, SectionLabel } from "./ui";
 import { Pill, toneColors, type Tone } from "./Care";
 import { useAuth } from "@/lib/auth";
@@ -218,7 +218,7 @@ export function MedicineSearch({ onAdd }: { onAdd: (name: string) => void }) {
         style={[s.input, { backgroundColor: t.input, borderColor: t.border, color: t.text }]}
       />
       {shown.length ? (
-        <View style={[s.suggest, { backgroundColor: t.card, borderColor: t.border }]}>
+        <View style={[s.suggest, { backgroundColor: t.card, borderColor: t.hairline }]}>
           {shown.slice(0, 6).map((sug) => (
             <Pressable key={`${sug.kind}-${sug.name}`} onPress={() => add(sug.name)} style={s.suggestRow} accessibilityRole="button">
               <Text style={{ color: t.text, fontWeight: "700" }}>{sug.name}</Text>
@@ -247,7 +247,7 @@ export function MedicineRows({ items, onChange, onRemove }: { items: EditableMed
   return (
     <View style={{ gap: 8 }}>
       {items.map((m) => (
-        <View key={m.key} style={[s.row, { borderColor: t.border, backgroundColor: t.card }]}>
+        <View key={m.key} style={[s.row, elevation(t), { borderColor: t.hairline, backgroundColor: t.card }]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TextInput value={m.name} onChangeText={(v) => onChange(m.key, { name: v })} style={{ flex: 1, color: t.text, fontWeight: "700", fontSize: 15 }} accessibilityLabel="Medicine name" />
             <Pressable onPress={() => onRemove(m.key)} hitSlop={10} accessibilityLabel={`Remove ${m.name}`}>
@@ -352,14 +352,14 @@ export function PrescriptionMedCheck({ medicines, onResult }: { medicines: Medic
 }
 
 const s = StyleSheet.create({
-  banner: { borderRadius: 16, padding: 14, gap: 4 },
+  banner: { borderRadius: 20, padding: 14, gap: 4 },
   tri: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 6, borderWidth: 1, paddingHorizontal: 5, paddingVertical: 2 },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  input: { borderWidth: 1, borderRadius: 12, minHeight: 46, paddingHorizontal: 12, fontSize: 16 },
-  suggest: { borderWidth: 1, borderRadius: 12, overflow: "hidden" },
+  input: { borderWidth: 1, borderRadius: 14, minHeight: 46, paddingHorizontal: 12, fontSize: 16 },
+  suggest: { borderWidth: 1, borderRadius: 14, overflow: "hidden" },
   suggestRow: { paddingHorizontal: 12, paddingVertical: 10, gap: 2 },
-  row: { borderWidth: 1, borderRadius: 14, padding: 10, gap: 8 },
-  small: { flex: 1, borderWidth: 1, borderRadius: 10, minHeight: 38, paddingHorizontal: 10, fontSize: 13 },
+  row: { borderWidth: 1, borderRadius: 18, padding: 10, gap: 8 },
+  small: { flex: 1, borderWidth: 1, borderRadius: 12, minHeight: 38, paddingHorizontal: 10, fontSize: 13 },
   panel: { borderWidth: 1.5, borderRadius: 18, padding: 14, gap: 10 },
-  btn: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  btn: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
 });

@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { Body, Button, Card, Chips, ErrorBox, Screen, SectionLabel } from "@/components/ui";
+import { Body, Button, Card, Chips, ErrorBox, PageHeader, Screen, Section, SectionLabel } from "@/components/ui";
 import { ShareWithDoctor } from "@/components/Care";
 import { MedCheckView, MedicineRows, MedicineSearch, type EditableMedicine } from "@/components/Meds";
 import { useTheme } from "@/components/theme";
@@ -113,28 +113,24 @@ export default function MedicinesScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: 6 }}>
-        <Text style={{ color: t.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1.6 }}>MEDICINE SAFETY</Text>
-        <Text style={{ color: t.text, fontSize: 25, fontWeight: "800" }}>Is this medicine OK in pregnancy?</Text>
-        <Body muted>We check each medicine for your month of pregnancy, look for clashes, and suggest when to take them.</Body>
-      </View>
-      <Card>
-        <SectionLabel>Month of pregnancy</SectionLabel>
+      <PageHeader
+        eyebrow="Medicine safety"
+        title="Is it OK in pregnancy?"
+        subtitle="We check each medicine for your month, look for clashes, and suggest when to take them."
+      />
+      <Section icon="calendar-outline" title="Month of pregnancy" subtitle={month ? undefined : "Not set: we’ll show all three trimesters"}>
         <Chips options={MONTHS} selected={month ? [month] : []} onToggle={(m) => setMonth(month === m ? null : m)} />
-        {!month ? <Body muted>Not set: we’ll show all three trimesters.</Body> : null}
-      </Card>
-      <Card>
-        <SectionLabel>Your medicines</SectionLabel>
-        {isPatient ? <Body muted>Saved to My medicines. Your doctor can see them.</Body> : null}
+      </Section>
+      <Section icon="medkit-outline" title="Your medicines" subtitle={isPatient ? "Saved to My medicines · your doctor can see them" : "Search by brand or ingredient"}>
         <MedicineSearch onAdd={(n) => void add(n)} />
         <MedicineRows
           items={items}
           onChange={(key, patch) => setItems((xs) => xs.map((m) => (m.key === key ? { ...m, ...patch, dirty: true } : m)))}
           onRemove={(key) => void remove(key)}
         />
-      </Card>
+      </Section>
       <ErrorBox message={error} />
-      <Button title={`Check ${items.length || ""} medicine${items.length === 1 ? "" : "s"}`.replace("  ", " ")} onPress={run} loading={busy} disabled={!items.some((m) => m.name.trim())} />
+      <Button icon="shield-checkmark" title={`Check ${items.length || ""} medicine${items.length === 1 ? "" : "s"}`.replace("  ", " ")} onPress={run} loading={busy} disabled={!items.some((m) => m.name.trim())} />
     </Screen>
   );
 }

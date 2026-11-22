@@ -54,7 +54,7 @@ export default function EmailVerifiedPage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-14">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="rounded-3xl border border-zinc-200/80 bg-white p-8 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
         <h1 className="text-2xl font-semibold tracking-tight">
           {verified ? "Your email is verified" : "Verification link problem"}
         </h1>
@@ -71,7 +71,7 @@ export default function EmailVerifiedPage() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/login"
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
+            className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500"
           >
             Log in on the website
           </Link>

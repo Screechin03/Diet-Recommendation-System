@@ -11,17 +11,22 @@ import {
   Col,
   Disclaimer,
   ErrorBox,
+  FieldLabel,
   H2,
+  IconCircle,
   NumberField,
+  PageHeader,
+  ProgressRing,
   Row,
   Screen,
-  SectionLabel,
+  Section,
+  Segmented,
   ToggleRow,
 } from "@/components/ui";
 import { Refined } from "@/components/Refined";
 import { ShareWithDoctor } from "@/components/Care";
 import { riskRecord } from "@/lib/careRecords";
-import { useTheme } from "@/components/theme";
+import { elevation, useTheme } from "@/components/theme";
 import { predictRisk, refine } from "@/lib/api";
 import type { HealthAnalyticsInput, RefinedSummary, RiskPredictionOut, RiskRecommendations } from "@/lib/types";
 
@@ -132,30 +137,30 @@ export default function HealthScreen() {
   const high = String(risk?.risk_level ?? "").toLowerCase() === "high";
   const recs = (result?.recommendations ?? null) as RiskRecommendations | null;
 
+  const prob = typeof risk?.risk_probability === "number" ? risk.risk_probability : null;
+  const tone = high ? t.danger : t.success;
+
   return (
-    <Screen>
+    <Screen safeTop>
+      <PageHeader eyebrow="Health check" title="How are you doing?" subtitle="Enter today’s readings. Our risk model flags anything worth a call to your doctor." />
+
       <Pressable
         onPress={() => router.push("/vitals")}
         accessibilityRole="button"
-        style={({ pressed }) => ({
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 12,
-          padding: 14,
-          borderRadius: 16,
-          backgroundColor: t.primarySoft,
-          opacity: pressed ? 0.85 : 1,
-        })}
+        style={({ pressed }) => [
+          { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 22, backgroundColor: t.card, borderWidth: 1, borderColor: t.hairline, transform: [{ scale: pressed ? 0.99 : 1 }] },
+          elevation(t),
+        ]}
       >
-        <Ionicons name="hardware-chip-outline" size={22} color={t.primary} />
+        <IconCircle name="hardware-chip-outline" tone="solid" />
         <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontWeight: "700" }}>Have the MamaCare device?</Text>
-          <Text style={{ color: t.muted, fontSize: 13 }}>Analyse its heart rate, oxygen and ECG readings</Text>
+          <Text style={{ color: t.text, fontWeight: "700", fontSize: 15 }}>Use the MamaCare device</Text>
+          <Text style={{ color: t.muted, fontSize: 13 }}>Heart rate, oxygen, temperature and ECG, recorded for you</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={t.muted} />
+        <Ionicons name="chevron-forward" size={18} color={t.subtle} />
       </Pressable>
-      <Card>
-        <SectionLabel>Vitals</SectionLabel>
+
+      <Section icon="pulse-outline" title="Readings" subtitle="From your last check-up or home monitor">
         <Row>
           <Col><NumberField label="Age" value={h.age} onChange={(age) => update({ age })} /></Col>
           <Col><NumberField label="BMI" value={h.bmi} onChange={(bmi) => update({ bmi })} decimal /></Col>
@@ -172,84 +177,82 @@ export default function HealthScreen() {
           <Col><NumberField label="Body temp" unit="°F" value={h.body_temp} onChange={(body_temp) => update({ body_temp })} decimal /></Col>
           <Col><NumberField label="Sleep" unit="hours" value={h.sleep_hours} onChange={(sleep_hours) => update({ sleep_hours })} /></Col>
         </Row>
-      </Card>
+      </Section>
 
-      <Card>
-        <SectionLabel>Medical history</SectionLabel>
+      <Section icon="document-text-outline" title="Medical history">
         <ToggleRow label="Previous pregnancy complications" value={!!h.previous_complications} onChange={(v) => update({ previous_complications: v })} />
         <ToggleRow label="Pre-existing diabetes" value={!!h.preexisting_diabetes} onChange={(v) => update({ preexisting_diabetes: v })} />
         <ToggleRow label="Gestational diabetes" value={!!h.gestational_diabetes} onChange={(v) => update({ gestational_diabetes: v })} />
         <ToggleRow label="Mental health concerns" value={!!h.mental_health_issues} onChange={(v) => update({ mental_health_issues: v })} />
         <ToggleRow label="Smoking history" value={!!h.smoking_history} onChange={(v) => update({ smoking_history: v })} />
-      </Card>
+      </Section>
 
-      <Card>
-        <SectionLabel>Lifestyle</SectionLabel>
-        <Body>Alcohol</Body>
-        <Chips options={ALCOHOL} selected={[h.alcohol_consumption ?? "none"]} onToggle={(v) => update({ alcohol_consumption: v })} />
-        <Body>Exercise</Body>
-        <Chips options={LEVELS3} selected={[h.exercise_frequency ?? "moderate"]} onToggle={(v) => update({ exercise_frequency: v })} />
-        <Body>Stress</Body>
-        <Chips options={LEVELS3} selected={[h.stress_level ?? "low"]} onToggle={(v) => update({ stress_level: v })} />
-        <ToggleRow label="AI summary" hint="Explain the result in plain language" value={useAi} onChange={setUseAi} />
-      </Card>
+      <Section icon="leaf-outline" title="Lifestyle">
+        <FieldLabel>Alcohol</FieldLabel>
+        <Segmented options={ALCOHOL} value={h.alcohol_consumption ?? "none"} onChange={(v) => update({ alcohol_consumption: v })} />
+        <FieldLabel>Exercise</FieldLabel>
+        <Segmented options={LEVELS3} value={h.exercise_frequency ?? "moderate"} onChange={(v) => update({ exercise_frequency: v })} />
+        <FieldLabel>Stress</FieldLabel>
+        <Segmented options={LEVELS3} value={h.stress_level ?? "low"} onChange={(v) => update({ stress_level: v })} />
+        <ToggleRow label="Explain the result" hint="A short plain-language note on what it means" value={useAi} onChange={setUseAi} />
+      </Section>
 
-      <Button title="Check my risk" onPress={submit} loading={loading} />
+      <Button title="Check my risk" icon="shield-checkmark" onPress={submit} loading={loading} />
       <ErrorBox message={error} />
+
+      {risk ? (
+        <Card style={{ borderColor: tone, borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 18 }}>
+          <ProgressRing value={prob ?? 0} size={96} stroke={9} color={tone} track={high ? t.dangerSoft : t.successSoft}>
+            <Text style={{ color: tone, fontSize: 22, fontWeight: "800" }}>{prob == null ? "–" : `${Math.round(prob * 100)}%`}</Text>
+          </ProgressRing>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={{ color: t.muted, fontSize: 11, fontWeight: "800", letterSpacing: 1.2 }}>RESULT</Text>
+            <Text style={{ color: tone, fontSize: 26, fontWeight: "800", letterSpacing: -0.4 }}>{String(risk.risk_level ?? "Unknown")} risk</Text>
+            <Body muted>
+              {prob != null ? "Chance of high risk" : ""}
+              {typeof risk.confidence === "number" ? ` · confidence ${Math.round(risk.confidence * 100)}%` : ""}
+            </Body>
+          </View>
+        </Card>
+      ) : null}
+
+      {risk?.risk_factors?.length ? (
+        <Section icon="warning-outline" title="What raised it">
+          <Bullets items={risk.risk_factors} color={t.warn} />
+        </Section>
+      ) : null}
 
       {result && assessed ? (
         <ShareWithDoctor key={assessed.id} build={() => riskRecord(assessed.input, result, refined)} what="this risk check" />
       ) : null}
 
-      {risk ? (
-        <Card style={{ borderColor: high ? t.danger : t.success, borderWidth: 2 }}>
-          <Text style={{ color: high ? t.danger : t.success, fontSize: 24, fontWeight: "800" }}>
-            {String(risk.risk_level ?? "Unknown")} risk
-          </Text>
-          <Body muted>
-            {typeof risk.risk_probability === "number" ? `High-risk probability ${Math.round(risk.risk_probability * 100)}%` : ""}
-            {typeof risk.confidence === "number" ? ` · model confidence ${Math.round(risk.confidence * 100)}%` : ""}
-          </Body>
-          {risk.risk_factors?.length ? (
-            <>
-              <H2>Risk factors</H2>
-              <Bullets items={risk.risk_factors} color={t.warn} />
-            </>
-          ) : null}
-        </Card>
-      ) : null}
-
       <Refined refined={refined} />
 
       {result ? (
-        <Card>
-          <H2>Your vitals</H2>
+        <Section icon="stats-chart-outline" title="Your readings" subtitle="Shaded band = usual range in pregnancy">
           <MetricBar label="BMI" value={h.bmi ?? 22} min={15} max={45} normal={[18.5, 24.9]} />
           <MetricBar label="Blood sugar" value={h.blood_sugar ?? 7} unit="mmol/L" min={3} max={14} normal={[4, 7.8]} />
           <MetricBar label="Systolic BP" value={h.systolic_bp ?? 120} unit="mmHg" min={80} max={200} normal={[90, 120]} />
           <MetricBar label="Diastolic BP" value={h.diastolic_bp ?? 80} unit="mmHg" min={40} max={130} normal={[60, 80]} />
           <MetricBar label="Heart rate" value={h.heart_rate ?? 75} unit="bpm" min={40} max={160} normal={[60, 100]} />
           <MetricBar label="Body temp" value={h.body_temp ?? 98.6} unit="°F" min={95} max={104} normal={[97, 99.5]} />
-        </Card>
+        </Section>
       ) : null}
 
-      {recs ? (
-        <Card>
-          {([
-            ["Do now", recs.immediate_actions],
-            ["Lifestyle changes", recs.lifestyle_changes],
-            ["Monitoring", recs.monitoring_requirements],
-            ["Talk to your doctor about", recs.medical_consultations],
-          ] as const).map(([title, items]) =>
+      {recs
+        ? ([
+            ["flash-outline", "Do now", recs.immediate_actions],
+            ["walk-outline", "Lifestyle changes", recs.lifestyle_changes],
+            ["eye-outline", "Keep an eye on", recs.monitoring_requirements],
+            ["medkit-outline", "Talk to your doctor about", recs.medical_consultations],
+          ] as const).map(([icon, title, items]) =>
             items?.length ? (
-              <View key={title} style={{ gap: 6 }}>
-                <H2>{title}</H2>
+              <Section key={title} icon={icon} title={title}>
                 <Bullets items={items} />
-              </View>
+              </Section>
             ) : null,
-          )}
-        </Card>
-      ) : null}
+          )
+        : null}
 
       <Disclaimer />
     </Screen>

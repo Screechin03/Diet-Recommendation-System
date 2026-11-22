@@ -4,7 +4,7 @@ import { router, type Href } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Body, ErrorBox, H1, Screen } from "@/components/ui";
 import { Pill, toneColors, type Tone } from "@/components/Care";
-import { useTheme } from "@/components/theme";
+import { elevation, useTheme } from "@/components/theme";
 import { useAuth } from "@/lib/auth";
 import { useLiveData } from "@/lib/careHooks";
 import { careErrorMessage, doctorInbox, doctorName, doctorPatients, KIND_COPY, timeAgo, type DoctorPatientRow, type InboxItem } from "@/lib/care";
@@ -69,7 +69,7 @@ export default function DoctorInboxScreen() {
         {stats.map(([label, n, tone]) => {
           const c = toneColors(t, tone);
           return (
-            <View key={label} style={[st.stat, { backgroundColor: t.card, borderColor: t.border }]}>
+            <View key={label} style={[st.stat, elevation(t), { backgroundColor: t.card, borderColor: t.hairline }]}>
               <Text style={{ color: tone === "gray" ? t.text : c.fg, fontSize: 24, fontWeight: "800" }}>{patients ? n : "–"}</Text>
               <Text style={{ color: t.muted, fontSize: 12 }}>{label}</Text>
             </View>

@@ -2,10 +2,11 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Body, Button, Card, Disclaimer, H1, InfoBox, Screen, SectionLabel } from "@/components/ui";
+import { AuthHeader, Body, Button, Card, Disclaimer, InfoBox, PageHeader, Screen, Section, Stat } from "@/components/ui";
+import { SectionTitle, ToolList } from "@/components/Widgets";
 import { Avatar, RecordRow } from "@/components/Care";
 import { DietSummary } from "@/components/CareRecord";
-import { useTheme } from "@/components/theme";
+import { elevation, type as typo, useTheme } from "@/components/theme";
 import { useAuth } from "@/lib/auth";
 import { useCareLinks, useLiveData } from "@/lib/careHooks";
 import { confirmAction } from "@/lib/confirm";
@@ -13,6 +14,7 @@ import {
   careErrorMessage,
   doctorName,
   endCare,
+  initials,
   getDietInstructions,
   hasDietInstructions,
   listRecords,
@@ -41,9 +43,8 @@ export default function CareTab() {
   }
   if (!user) {
     return (
-      <Screen>
-        <H1>My care</H1>
-        <Body muted>Log in to keep your reports and readings, share them with your doctor and get their reviews. Uses the same account as the website.</Body>
+      <Screen safeTop>
+        <AuthHeader title="My care" subtitle="Log in to keep your reports and readings, share them with your doctor and get their reviews." />
         <Button title="Log in" onPress={() => router.push("/login")} />
         <Button title="Create account" variant="secondary" onPress={() => router.push("/signup")} />
         <Pressable onPress={() => router.push("/doctor-login")} accessibilityRole="link" style={{ alignSelf: "center", padding: 8 }}>
@@ -57,19 +58,29 @@ export default function CareTab() {
 
   const name = account?.patient?.full_name ?? (user.user_metadata?.full_name as string | undefined) ?? null;
   return (
-    <Screen>
-      <View style={{ gap: 4 }}>
-        <Text style={[st.eyebrow, { color: t.primary }]}>MY CARE</Text>
-        <H1>{name ? `Hi ${name.split(" ")[0]}` : "Your health records"}</H1>
-        <Body muted>{user.email}</Body>
-      </View>
-      {careAvailable ? <CareHome userId={user.id} /> : <InfoBox>Doctor features aren’t set up on the server yet.</InfoBox>}
-      <Card>
-        <SectionLabel>Account</SectionLabel>
-        <Button title="Saved recipes" variant="secondary" onPress={() => router.push("/saved")} />
-        <Button title="Recommendation history" variant="secondary" onPress={() => router.push("/history")} />
-        <Button title="Log out" variant="danger" onPress={() => signOut().catch(() => {})} />
+    <Screen safeTop>
+      <PageHeader eyebrow="My care" title="Records & doctor" />
+      <Card style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <View style={[st.me, { backgroundColor: t.primary }]}>
+          <Text style={{ color: t.onPrimary, fontSize: 20, fontWeight: "800" }}>{name ? initials(name) : "?"}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[typo.headline, { color: t.text }]} numberOfLines={1}>{name ?? "Your account"}</Text>
+          <Text style={{ color: t.muted, fontSize: 13.5 }} numberOfLines={1}>{user.email}</Text>
+          {account?.patient?.pregnancy_month ? (
+            <Text style={{ color: t.primary, fontSize: 12.5, fontWeight: "700", marginTop: 3 }}>Month {account.patient.pregnancy_month} of 9</Text>
+          ) : null}
+        </View>
       </Card>
+      {careAvailable ? <CareHome userId={user.id} /> : <InfoBox>Doctor features aren’t set up on the server yet.</InfoBox>}
+      <SectionTitle>Account</SectionTitle>
+      <ToolList
+        items={[
+          { icon: "heart-outline", title: "Saved recipes", text: "Meals you’ve kept for later", href: "/saved" },
+          { icon: "time-outline", title: "Recommendation history", text: "Every plan you’ve generated", href: "/history" },
+        ]}
+      />
+      <Button title="Log out" variant="danger" icon="log-out-outline" onPress={() => signOut().catch(() => {})} />
       <Disclaimer />
     </Screen>
   );
@@ -99,6 +110,8 @@ function CareHome({ userId }: { userId: string }) {
 
   const doctor = active?.doctor ?? null;
   const past = (links ?? []).filter((l) => l.status === "ended");
+  const awaiting = (records ?? []).filter((r) => r.review_status === "requested").length;
+  const reviewed = (records ?? []).filter((r) => r.review_status === "reviewed").length;
 
   async function end() {
     if (!active) return;
@@ -120,11 +133,16 @@ function CareHome({ userId }: { userId: string }) {
 
   return (
     <>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Stat label="Records" value={records ? String(records.length) : "–"} tone="rose" />
+        <Stat label="Awaiting" value={records ? String(awaiting) : "–"} caption="doctor review" />
+        <Stat label="Reviewed" value={records ? String(reviewed) : "–"} caption={unread.total ? `${unread.total} unread` : "all read"} />
+      </View>
       {loading ? (
         <ActivityIndicator color={t.primary} />
       ) : doctor ? (
-        <Card>
-          <Text style={[st.eyebrow, { color: t.info }]}>YOUR DOCTOR</Text>
+        <Card style={{ gap: 16 }}>
+          <Text style={[st.eyebrow, { color: t.muted }]}>YOUR DOCTOR</Text>
           <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
             <Avatar name={doctor.full_name} size={50} doctor />
             <View style={{ flex: 1 }}>
@@ -135,12 +153,12 @@ function CareHome({ userId }: { userId: string }) {
           <Pressable
             onPress={() => router.push("/care/messages")}
             accessibilityRole="button"
-            style={({ pressed }) => [st.msgRow, { backgroundColor: t.infoSoft, opacity: pressed ? 0.85 : 1 }]}
+            style={({ pressed }) => [st.msgRow, { backgroundColor: t.primaryTint, opacity: pressed ? 0.85 : 1 }]}
           >
-            <Ionicons name="chatbubbles-outline" size={20} color={t.info} />
+            <Ionicons name="chatbubbles-outline" size={20} color={t.primary} />
             <Text style={{ color: t.text, fontWeight: "700", flex: 1 }}>Messages with {doctorName(doctor.full_name)}</Text>
             {unread.byRecord.general ? (
-              <View style={[st.badge, { backgroundColor: t.danger }]}><Text style={st.badgeText}>{unread.byRecord.general}</Text></View>
+              <View style={[st.badge, { backgroundColor: t.primary }]}><Text style={st.badgeText}>{unread.byRecord.general}</Text></View>
             ) : (
               <Ionicons name="chevron-forward" size={18} color={t.muted} />
             )}
@@ -151,26 +169,20 @@ function CareHome({ userId }: { userId: string }) {
           </View>
         </Card>
       ) : (
-        <Card>
-          <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-            <Ionicons name="medkit-outline" size={26} color={t.info} />
-            <Text style={{ color: t.text, fontSize: 17, fontWeight: "800", flex: 1 }}>Choose your doctor</Text>
-          </View>
-          <Body muted>Your doctor sees your records as soon as you save them, reviews them and can message you. You can change doctor at any time.</Body>
-          <Button title="Find a doctor" onPress={() => router.push("/care/doctors")} />
-        </Card>
+        <Section icon="medkit-outline" title="Choose your doctor" subtitle="Change doctor at any time">
+          <Body muted>Your doctor sees your records as soon as you save them, reviews them and can message you.</Body>
+          <Button title="Find a doctor" icon="search" onPress={() => router.push("/care/doctors")} />
+        </Section>
       )}
 
       {hasDietInstructions(diet) ? (
-        <Card>
-          <SectionLabel>Diet instructions from {doctorName(diet.updated_by_name)}</SectionLabel>
+        <Section icon="nutrition-outline" title="Diet instructions" subtitle={`From ${doctorName(diet.updated_by_name)} · applied to your Diet Plan automatically`}>
           <DietSummary d={diet} />
-          <Body muted>The Diet Plan tab applies these automatically.</Body>
-        </Card>
+        </Section>
       ) : null}
 
-      <View style={{ gap: 8 }}>
-        <SectionLabel>Your records{records ? ` (${records.length})` : ""}</SectionLabel>
+      <SectionTitle>Your records</SectionTitle>
+      <View style={{ gap: 10 }}>
         {error ? <Text style={{ color: t.danger }}>{error}</Text> : null}
         {records === null && !error ? <ActivityIndicator color={t.primary} /> : null}
         {records && !records.length ? (
@@ -182,8 +194,7 @@ function CareHome({ userId }: { userId: string }) {
       </View>
 
       {past.length ? (
-        <Card>
-          <SectionLabel>Previous doctors</SectionLabel>
+        <Section icon="people-outline" title="Previous doctors" subtitle="Your new doctor can see their notes">
           {past.map((l) => (
             <View key={l.id} style={{ gap: 2 }}>
               <Text style={{ color: t.text, fontWeight: "700" }}>{doctorName(l.doctor?.full_name)}</Text>
@@ -194,7 +205,7 @@ function CareHome({ userId }: { userId: string }) {
               </Text>
             </View>
           ))}
-        </Card>
+        </Section>
       ) : null}
     </>
   );
@@ -202,7 +213,8 @@ function CareHome({ userId }: { userId: string }) {
 
 const st = StyleSheet.create({
   eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1.6 },
-  msgRow: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 12, padding: 12 },
+  msgRow: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 16, padding: 14 },
+  me: { width: 58, height: 58, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   badge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "800" },
 });

@@ -50,7 +50,7 @@ export default function TabLayout() {
           name={tab.name}
           options={{
             title: tab.title,
-            headerShown: tab.name !== "index",
+            headerShown: false, // every tab draws its own large page header
             tabBarBadge: tab.name === "account" && badge ? badge : undefined,
             tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? tab.active : tab.icon} size={24} color={String(color)} />,
           }}

@@ -61,7 +61,7 @@ export default function FeaturesPage() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 transition hover:-translate-y-0.5 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:bg-zinc-900"
+              className="rounded-3xl border border-zinc-200/80 bg-zinc-50 p-5 transition hover:-translate-y-0.5 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:bg-zinc-900 shadow-soft"
             >
               <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
                 {feature.title}

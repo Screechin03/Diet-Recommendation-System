@@ -3,13 +3,13 @@ import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } fr
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Body, Disclaimer, ErrorBox, Field, Screen, ToggleRow } from "@/components/ui";
+import { Disclaimer, ErrorBox, Field, PageHeader, Screen, ToggleRow } from "@/components/ui";
 import { DietPlanCard, ReportCard, ScanCard } from "@/components/ReportViews";
 import { ShareWithDoctor } from "@/components/Care";
 import { PrescriptionMedCheck } from "@/components/Meds";
 import { medicinesFromReport, type MedCheckResult } from "@/lib/meds";
 import { reportRecord } from "@/lib/careRecords";
-import { useTheme } from "@/components/theme";
+import { elevation, useTheme } from "@/components/theme";
 import { prescriptionReport, scanHandwriting } from "@/lib/api";
 import {
   formatBytes,
@@ -155,11 +155,29 @@ export default function ReportScreen() {
   ];
 
   return (
-    <Screen>
-      <View style={{ gap: 6 }}>
-        <Text style={[st.eyebrow, { color: t.primary }]}>PRESCRIPTION & REPORT READER</Text>
-        <Text style={[st.title, { color: t.text }]}>Turn a doctor’s note into a plan</Text>
-        <Body muted>We list the medicines and test results, flag anything unclear, and suggest pregnancy-friendly meals.</Body>
+    <Screen safeTop>
+      <PageHeader
+        eyebrow="Prescription reader"
+        title="Turn a note into a plan"
+        subtitle="We list the medicines and test results, flag anything unclear, and suggest pregnancy-friendly meals."
+      />
+
+      <View style={[st.flow, { backgroundColor: t.card, borderColor: t.hairline }, elevation(t)]}>
+        {([
+          ["document-text-outline", "Read it", Boolean(report?.success || ocr)],
+          ["medkit-outline", "Check medicines", Boolean(medCheck)],
+          ["paper-plane-outline", "Send to doctor", false],
+        ] as const).map(([icon, label, done], i) => (
+          <View key={label} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+            <View style={{ alignItems: "center", gap: 6, flex: 1 }}>
+              <View style={[st.flowDot, { backgroundColor: done ? t.success : i === 0 ? t.primary : t.primarySoft }]}>
+                <Ionicons name={done ? "checkmark" : icon} size={17} color={done || i === 0 ? "#fff" : t.primary} />
+              </View>
+              <Text style={{ color: t.text, fontSize: 12, fontWeight: "700" }} numberOfLines={1}>{label}</Text>
+            </View>
+            {i < 2 ? <View style={[st.flowLine, { backgroundColor: t.border }]} /> : null}
+          </View>
+        ))}
       </View>
 
       <View style={[st.segment, { backgroundColor: t.muted2 }]} accessibilityRole="tablist">
@@ -220,7 +238,8 @@ export default function ReportScreen() {
             accessibilityRole="button"
             style={({ pressed }) => [
               st.source,
-              { backgroundColor: t.card, borderColor: t.border, opacity: loading ? 0.5 : pressed ? 0.8 : 1 },
+              { backgroundColor: t.card, borderColor: t.hairline, opacity: loading ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
+              elevation(t),
             ]}
           >
             <View style={[st.sourceIcon, { backgroundColor: t.primarySoft }]}>
@@ -252,10 +271,14 @@ export default function ReportScreen() {
         onPress={submit}
         disabled={!file || loading}
         accessibilityRole="button"
-        style={({ pressed }) => [st.cta, { backgroundColor: t.text, opacity: !file || loading ? 0.5 : pressed ? 0.85 : 1 }]}
+        style={({ pressed }) => [
+          st.cta,
+          { backgroundColor: t.primary, opacity: !file || loading ? 0.5 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
+          file && !loading ? elevation(t) : null,
+        ]}
       >
-        {loading ? <ActivityIndicator color={t.card} /> : null}
-        <Text style={{ color: t.card, fontWeight: "700", fontSize: 16 }}>
+        {loading ? <ActivityIndicator color={t.onPrimary} /> : <Ionicons name={mode === "full" ? "reader-outline" : "scan-outline"} size={19} color={t.onPrimary} />}
+        <Text style={{ color: t.onPrimary, fontWeight: "700", fontSize: 16 }}>
           {loading ? `Reading… ${Math.floor(elapsed)}s` : mode === "full" ? "Read my report" : "Scan handwriting"}
         </Text>
       </Pressable>
@@ -292,7 +315,7 @@ export default function ReportScreen() {
       ) : null}
 
       {!file && !loading && !report && !ocr ? (
-        <View style={[st.tips, { borderColor: t.border }]}>
+        <View style={[st.tips, { borderColor: t.primarySoft, backgroundColor: t.primaryTint }]}>
           <Text style={{ color: t.text, fontWeight: "700" }}>For the best result</Text>
           {[
             ["sunny-outline", "Flat and well lit, no shadows across the writing"],
@@ -328,8 +351,9 @@ export default function ReportScreen() {
 }
 
 const st = StyleSheet.create({
-  eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1.6 },
-  title: { fontSize: 25, fontWeight: "800", letterSpacing: -0.3 },
+  flow: { flexDirection: "row", borderWidth: 1, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 8 },
+  flowDot: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  flowLine: { position: "absolute", right: -14, width: 28, height: 2, top: 18, borderRadius: 1 },
   segment: { flexDirection: "row", borderRadius: 14, padding: 4, gap: 4 },
   segBtn: {
     flex: 1,
@@ -344,15 +368,15 @@ const st = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
   },
-  fileRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 16, padding: 10 },
-  thumb: { width: 60, height: 60, borderRadius: 12 },
-  source: { flex: 1, alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 16, paddingVertical: 14 },
-  sourceIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  prefs: { borderWidth: 1, borderRadius: 16 },
-  prefsHead: { flexDirection: "row", alignItems: "center", padding: 14 },
-  cta: { height: 54, borderRadius: 14, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" },
-  stages: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
+  fileRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 20, padding: 10 },
+  thumb: { width: 60, height: 60, borderRadius: 14 },
+  source: { flex: 1, alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 22, paddingVertical: 18 },
+  sourceIcon: { width: 46, height: 46, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  prefs: { borderWidth: 1, borderRadius: 22 },
+  prefsHead: { flexDirection: "row", alignItems: "center", padding: 16 },
+  cta: { height: 56, borderRadius: 18, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" },
+  stages: { borderWidth: 1, borderRadius: 22, padding: 16, gap: 12 },
   stageDot: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 2 },
-  notice: { flexDirection: "row", gap: 10, borderRadius: 14, padding: 14, alignItems: "flex-start" },
-  tips: { borderWidth: 1, borderStyle: "dashed", borderRadius: 16, padding: 16, gap: 12 },
+  notice: { flexDirection: "row", gap: 10, borderRadius: 16, padding: 14, alignItems: "flex-start" },
+  tips: { borderWidth: 1.5, borderStyle: "dashed", borderRadius: 22, padding: 18, gap: 12 },
 });

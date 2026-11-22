@@ -279,7 +279,7 @@ export function LiveMonitor({
 
   if (!connected) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
         <h3 className="text-base font-semibold">{source.kind === "usb" ? "Connect your MamaCare device" : "Start the sample device"}</h3>
         {source.kind === "usb" ? (
           <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
@@ -325,7 +325,7 @@ export function LiveMonitor({
   );
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
         <div className="flex items-center gap-2.5">
           <span className="relative flex h-2.5 w-2.5">

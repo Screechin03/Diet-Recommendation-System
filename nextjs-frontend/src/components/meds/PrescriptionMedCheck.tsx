@@ -71,7 +71,7 @@ export function PrescriptionMedCheck({ medicines, onResult }: { medicines: Medic
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-sky-200 bg-white dark:border-sky-900/60 dark:bg-zinc-950">
+    <section className="overflow-hidden rounded-3xl border border-sky-200 bg-white dark:border-sky-900/60 dark:bg-zinc-900/60 shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-100 bg-sky-50/70 px-5 py-4 dark:border-sky-900/40 dark:bg-sky-950/30">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-600 text-white"><PillIcon size={18} /></span>

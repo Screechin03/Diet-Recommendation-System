@@ -37,7 +37,7 @@ export function UploadDropzone({
 
   if (file) {
     return (
-      <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900/60">
+      <div className="flex items-center gap-4 rounded-3xl border border-zinc-200/80 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element -- local object URL preview

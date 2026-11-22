@@ -15,6 +15,7 @@ import {
   saveRecipeForUser,
 } from "@/lib/supabaseUserData";
 import { DietaryRestrictionsChecklist } from "@/components/DietaryRestrictionsChecklist";
+import { PageIntro } from "@/components/PageIntro";
 
 const inputClass =
   "h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:ring-zinc-700";
@@ -193,16 +194,11 @@ export default function DietPlannerPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Diet Planner</h1>
-          <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-300">
-            Fill your pregnancy profile and get pregnancy-safe recipe recommendations.
-          </p>
-        </div>
+<PageIntro eyebrow="Diet plan" title="Meals for your month" subtitle="Tell us about your pregnancy and get pregnancy-safe recipes matched to it." icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 11h18a9 9 0 0 1-18 0z" /><path d="M8 20h8M12 4c1 1.2 1 2.3 0 3.5M8.5 5c.8 1 .8 2 0 3M15.5 5c.8 1 .8 2 0 3" /></svg>} />
         <button
           onClick={submit}
           disabled={loading}
-          className="h-10 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          className="h-11 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-lift transition hover:bg-emerald-500 disabled:opacity-60"
         >
           {loading ? "Generating…" : "Generate"}
         </button>
@@ -228,7 +224,7 @@ export default function DietPlannerPage() {
       ) : null}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[420px_1fr]">
-        <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
           <div className="grid gap-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-1">
@@ -465,7 +461,7 @@ export default function DietPlannerPage() {
             />
           ) : null}
           {refined ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 text-sm shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
               <div className="text-base font-semibold">{String(refined.title ?? "Refined summary")}</div>
               {refined.summary ? (
                 <p className="mt-2 text-zinc-700 dark:text-zinc-300">{String(refined.summary)}</p>
@@ -481,11 +477,11 @@ export default function DietPlannerPage() {
           ) : null}
 
           {recipes === null ? (
-            <div className="rounded-2xl border border-dashed border-zinc-300 p-10 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+            <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 p-10 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
               Results will appear here.
             </div>
           ) : recipes.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-700 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+            <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 text-sm text-zinc-700 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300">
               No recipes returned. Try removing restrictions or using fewer ingredients.
             </div>
           ) : (

@@ -82,6 +82,131 @@ export function Card({ children, style, tone = "plain" }: { children: ReactNode;
   );
 }
 
+/** A form/content section: icon tile + title (+ subtitle) heading a card. */
+export function Section({
+  icon,
+  title,
+  subtitle,
+  right,
+  children,
+  style,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle?: string;
+  right?: ReactNode;
+  children: ReactNode;
+  style?: ViewStyle;
+}) {
+  const t = useTheme();
+  return (
+    <Card style={{ gap: 16, ...style }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <IconCircle name={icon} size={38} />
+        <View style={{ flex: 1 }}>
+          <Text style={[type.headline, { color: t.text }]}>{title}</Text>
+          {subtitle ? <Text style={{ color: t.muted, fontSize: 13, lineHeight: 18, marginTop: 1 }}>{subtitle}</Text> : null}
+        </View>
+        {right}
+      </View>
+      {children}
+    </Card>
+  );
+}
+
+/** iOS-style segmented control for 2–5 options. */
+export function Segmented<T extends string | number>({
+  options,
+  value,
+  onChange,
+}: {
+  options: Array<{ value: T; label: string }>;
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  const t = useTheme();
+  return (
+    <View style={{ flexDirection: "row", backgroundColor: t.muted2, borderRadius: 14, padding: 4, gap: 4 }}>
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable
+            key={String(o.value)}
+            onPress={() => onChange(o.value)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            style={[
+              { flex: 1, minHeight: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
+              on ? [{ backgroundColor: t.card }, elevation(t)] : null,
+            ]}
+          >
+            <Text style={{ color: on ? t.primary : t.muted, fontWeight: on ? "800" : "600", fontSize: 14 }} numberOfLines={1}>
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Small figure tile: label, big value, optional unit and caption. */
+export function Stat({ label, value, unit, caption, tone = "plain" }: { label: string; value: string; unit?: string; caption?: string; tone?: "plain" | "rose" }) {
+  const t = useTheme();
+  const rose = tone === "rose";
+  return (
+    <View style={{ flex: 1, borderRadius: 18, padding: 14, gap: 4, backgroundColor: rose ? t.primarySoft : t.muted2 }}>
+      <Text style={[type.eyebrow, { color: rose ? t.primaryDeep : t.muted, fontSize: 10 }]} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={{ color: rose ? t.primaryDeep : t.text, fontSize: 22, fontWeight: "800", letterSpacing: -0.4 }} numberOfLines={1}>
+        {value}
+        {unit ? <Text style={{ fontSize: 13, fontWeight: "600", color: t.muted }}>{` ${unit}`}</Text> : null}
+      </Text>
+      {caption ? (
+        <Text style={{ color: t.muted, fontSize: 12 }} numberOfLines={1}>
+          {caption}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+/** Friendly placeholder when a list is empty. */
+export function EmptyState({ icon, title, text, action, onAction }: { icon: IconName; title: string; text?: string; action?: string; onAction?: () => void }) {
+  const t = useTheme();
+  return (
+    <View style={{ alignItems: "center", gap: 10, paddingVertical: 36, paddingHorizontal: 24, borderRadius: 24, borderWidth: 1.5, borderStyle: "dashed", borderColor: t.primarySoft, backgroundColor: t.primaryTint }}>
+      <IconCircle name={icon} size={58} />
+      <Text style={[type.headline, { color: t.text, textAlign: "center", marginTop: 4 }]}>{title}</Text>
+      {text ? <Text style={[type.body, { color: t.muted, textAlign: "center", fontSize: 14 }]}>{text}</Text> : null}
+      {action && onAction ? (
+        <View style={{ alignSelf: "stretch", marginTop: 6 }}>
+          <Button title={action} onPress={onAction} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** Rounded search box with a magnifier icon. */
+export function SearchField(props: TextInputProps) {
+  const t = useTheme();
+  const f = useFocusStyle();
+  return (
+    <View>
+      <Ionicons name="search" size={18} color={t.subtle} style={{ position: "absolute", left: 14, top: 16, zIndex: 1 }} />
+      <TextInput placeholderTextColor={t.subtle} autoCapitalize="none" autoCorrect={false} {...props} {...f.focusProps} style={[styles.input, { paddingLeft: 42 }, f.style]} />
+    </View>
+  );
+}
+
+/** Label above a control inside a section. */
+export function FieldLabel({ children }: { children: ReactNode }) {
+  const t = useTheme();
+  return <Text style={[styles.label, { color: t.muted, marginBottom: -6 }]}>{children}</Text>;
+}
+
 /** A card with a small icon, a title and an optional action link in its header. */
 export function Widget({
   icon,

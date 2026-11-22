@@ -22,7 +22,7 @@ const METRIC_TONE: Record<MetricStatus, { label: string; cls: string }> = {
 function MetricCard({ title, value, unit, sub, range, status }: { title: string; value: ReactNode; unit?: string; sub?: string; range?: string; status: MetricStatus }) {
   const tone = METRIC_TONE[status];
   return (
-    <div className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex flex-col rounded-3xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-zinc-500">{title}</span>
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${tone.cls}`}>{tone.label}</span>
@@ -111,7 +111,7 @@ export function VitalsResults({ analysis, onNew }: { analysis: VitalsAnalysis; o
       </div>
 
       {analysis.findings.length ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+        <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
           <h3 className="text-sm font-semibold">What we found</h3>
           <ul className="mt-3 space-y-3">
             {analysis.findings.map((f, i) => {
@@ -130,7 +130,7 @@ export function VitalsResults({ analysis, onNew }: { analysis: VitalsAnalysis; o
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+      <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
         <h3 className="text-sm font-semibold">What to do next</h3>
         <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
           {analysis.recommendations.map((r, i) => (
@@ -155,7 +155,7 @@ export function VitalsResults({ analysis, onNew }: { analysis: VitalsAnalysis; o
       </div>
 
       {analysis.ecg_strip && ecgOk ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+        <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h3 className="text-sm font-semibold">ECG sample</h3>
             <span className="text-xs text-zinc-500">25 mm/s · 10 mm/mV (approx.) · dots = detected beats</span>
@@ -179,7 +179,7 @@ export function VitalsResults({ analysis, onNew }: { analysis: VitalsAnalysis; o
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+      <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
         <h3 className="text-sm font-semibold">Your report</h3>
         <p className="mt-1 text-sm text-zinc-500">A PDF with these results and the ECG sample, to keep or show your doctor.</p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">

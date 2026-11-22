@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ComponentProps, type Rea
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, type Href } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useTheme, type Theme } from "./theme";
+import { elevation, useTheme, type Theme } from "./theme";
 import { useAuth } from "@/lib/auth";
 import { useCareLinks, useLiveData } from "@/lib/careHooks";
 import {
@@ -92,7 +92,7 @@ export function KindIcon({ kind, size = 40 }: { kind: RecordKind; size?: number 
   const tone: Tone = kind === "vitals" ? "red" : kind === "risk" ? "amber" : kind === "diet_plan" ? "green" : "blue";
   const c = toneColors(t, tone);
   return (
-    <View style={{ width: size, height: size, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
+    <View style={{ width: size, height: size, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
       <Ionicons name={KIND_ICON[kind]} size={size * 0.5} color={c.fg} />
     </View>
   );
@@ -104,7 +104,7 @@ export function RecordRow({ record, href, unread = 0, doctorView }: { record: Re
     <Pressable
       onPress={() => router.push(href)}
       accessibilityRole="button"
-      style={({ pressed }) => [s.row, { backgroundColor: t.card, borderColor: t.border, opacity: pressed ? 0.85 : 1 }]}
+      style={({ pressed }) => [s.row, elevation(t), { backgroundColor: t.card, borderColor: t.hairline, opacity: pressed ? 0.85 : 1 }]}
     >
       <KindIcon kind={record.kind} />
       <View style={{ flex: 1, gap: 4 }}>
@@ -376,13 +376,13 @@ export function ShareWithDoctor({
 
 const s = StyleSheet.create({
   pill: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start" },
-  row: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 16, padding: 12 },
+  row: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 20, padding: 12 },
   badge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  bubble: { maxWidth: "88%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
-  input: { flex: 1, minHeight: 46, maxHeight: 140, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, fontSize: 15 },
+  bubble: { maxWidth: "88%", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10 },
+  input: { flex: 1, minHeight: 46, maxHeight: 140, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, fontSize: 15 },
   send: { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
   share: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 10 },
   shareTitle: { fontSize: 16, fontWeight: "800" },
   btnRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  smallBtn: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
+  smallBtn: { minHeight: 42, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
 });

@@ -127,7 +127,7 @@ export default function DocsPage() {
           {endpoints.map((endpoint) => (
             <section
               key={endpoint.path}
-              className="rounded-2xl border border-zinc-200 bg-white/90 p-5 dark:border-zinc-800 dark:bg-zinc-950/70"
+              className="rounded-3xl border border-zinc-200/80 bg-white/90 p-5 dark:border-zinc-800 dark:bg-zinc-900/60/70 shadow-soft"
             >
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="rounded-full bg-zinc-950 px-3 py-1 font-semibold text-white dark:bg-white dark:text-zinc-950">

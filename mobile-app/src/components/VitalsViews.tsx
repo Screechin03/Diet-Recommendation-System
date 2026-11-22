@@ -3,7 +3,7 @@ import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Defs, Line, Path, Pattern, Rect, Text as SvgText } from "react-native-svg";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { STATUS_COPY, formatDuration, type MetricStatus, type VitalsAnalysis } from "@/lib/vitals";
-import { useTheme, type Theme } from "./theme";
+import { elevation, useTheme, type Theme } from "./theme";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 const SVG_FONT = Platform.OS === "web" ? "system-ui, -apple-system, sans-serif" : undefined;
@@ -28,14 +28,14 @@ function metricTone(t: Theme, s: MetricStatus) {
 
 function Card({ children, style }: { children: ReactNode; style?: object }) {
   const t = useTheme();
-  return <View style={[s.card, { backgroundColor: t.card, borderColor: t.border }, style]}>{children}</View>;
+  return <View style={[s.card, elevation(t), { backgroundColor: t.card, borderColor: t.hairline }, style]}>{children}</View>;
 }
 
 function Metric({ title, value, unit, sub, status }: { title: string; value: string | number; unit?: string; sub: string; status: MetricStatus }) {
   const t = useTheme();
   const tone = metricTone(t, status);
   return (
-    <View style={[s.metric, { backgroundColor: t.card, borderColor: t.border }]}>
+    <View style={[s.metric, elevation(t), { backgroundColor: t.card, borderColor: t.hairline }]}>
       <View style={s.rowBetween}>
         <Text style={{ color: t.muted, fontSize: 12 }}>{title}</Text>
         <View style={[s.pill, { backgroundColor: tone.bg }]}>
@@ -96,7 +96,7 @@ export function EcgStrip({ mv, hz, peaks }: { mv: number[]; hz: number; peaks: n
   const d = mv.map((v, i) => `${i ? "L" : "M"}${((i / hz) * pxPerS).toFixed(2)},${yOf(v).toFixed(2)}`).join("");
   const scale = 4; // 4 px per mm on screen
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator style={{ borderRadius: 12 }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator style={{ borderRadius: 14 }}>
       <Svg width={width * scale} height={height * scale} viewBox={`0 0 ${width} ${height}`}>
         <Defs>
           <Pattern id="small" width={1} height={1} patternUnits="userSpaceOnUse">
@@ -222,8 +222,8 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4 },
   pill: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  metric: { borderWidth: 1, borderRadius: 16, padding: 12, width: "48%", flexGrow: 1 },
+  metric: { borderWidth: 1, borderRadius: 20, padding: 12, width: "48%", flexGrow: 1 },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   h: { fontSize: 15, fontWeight: "700" },
-  stat: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, flexGrow: 1 },
+  stat: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, flexGrow: 1 },
 });

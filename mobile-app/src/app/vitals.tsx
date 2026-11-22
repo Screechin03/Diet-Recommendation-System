@@ -5,13 +5,14 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Body, Button, Chips, Disclaimer, ErrorBox, Field, InfoBox, Screen, SectionLabel } from "@/components/ui";
+import { Body, Button, Chips, Disclaimer, ErrorBox, Field, FieldLabel, IconCircle, InfoBox, PageHeader, Screen, Section, SectionLabel, Segmented } from "@/components/ui";
 import { VitalsResult } from "@/components/VitalsViews";
-import { useTheme } from "@/components/theme";
+import { elevation, useTheme } from "@/components/theme";
 import { analyzeVitalsDemo, analyzeVitalsFile, vitalsReportPdf } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { loadProfile } from "@/lib/profile";
 import { ReviewPill, ShareWithDoctor, toneColors } from "@/components/Care";
+import { SectionTitle } from "@/components/Widgets";
 import { listRecordsOfKind, SEVERITY_COPY, timeAgo, updatePregnancyMonth, type HealthRecord } from "@/lib/care";
 import { vitalsRecord } from "@/lib/careRecords";
 import { type VitalsAnalysis } from "@/lib/vitals";
@@ -125,12 +126,10 @@ export default function VitalsScreen() {
           }}
         />
         <VitalsResult analysis={result} />
-        <View style={[st.card, { backgroundColor: t.card, borderColor: t.border }]}>
-          <SectionLabel>Your report</SectionLabel>
-          <Body muted>A PDF with these results and the ECG sample, to keep or send to your doctor.</Body>
+        <Section icon="document-attach-outline" title="Your report" subtitle="A PDF with these results and the ECG sample">
           <Field label="Name on the report (optional)" value={name} onChangeText={setName} maxLength={80} />
-          <Button title={sharing ? "Creating PDF…" : "Share PDF report"} onPress={sharePdf} loading={sharing} />
-        </View>
+          <Button title={sharing ? "Creating PDF…" : "Share PDF report"} icon="share-outline" onPress={sharePdf} loading={sharing} />
+        </Section>
         <ErrorBox message={error} />
         <Button title="New measurement" variant="secondary" onPress={() => setResult(null)} />
       </Screen>
@@ -139,33 +138,26 @@ export default function VitalsScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: 6 }}>
-        <Text style={[st.eyebrow, { color: t.primary }]}>HOME MONITORING</Text>
-        <Text style={[st.title, { color: t.text }]}>Your vital signs, explained</Text>
-        <Body muted>Heart rate, blood oxygen, temperature and ECG from the MamaCare device, checked against pregnancy ranges.</Body>
-      </View>
+      <PageHeader
+        eyebrow="Home monitoring"
+        title="Vital signs, explained"
+        subtitle="Heart rate, blood oxygen, temperature and ECG from the MamaCare device, checked against pregnancy ranges."
+      />
 
-      <View style={[st.card, { backgroundColor: t.card, borderColor: t.border }]}>
-        <SectionLabel>About you</SectionLabel>
-        <Body>Month of pregnancy</Body>
+      <Section icon="person-outline" title="About you">
+        <FieldLabel>Month of pregnancy</FieldLabel>
         <Chips options={MONTHS} selected={month ? [month] : []} onToggle={(m) => setMonth(month === m ? null : m)} />
-        <Body>When measured</Body>
-        <Chips
-          options={[{ value: "rest" as const, label: "At rest" }, { value: "exercise" as const, label: "After exercise" }]}
-          selected={[activity]}
-          onToggle={setActivity}
-        />
-      </View>
+        <FieldLabel>When measured</FieldLabel>
+        <Segmented options={[{ value: "rest" as const, label: "At rest" }, { value: "exercise" as const, label: "After exercise" }]} value={activity} onChange={setActivity} />
+      </Section>
 
       <Pressable
         onPress={importFile}
         disabled={busy !== null}
         accessibilityRole="button"
-        style={({ pressed }) => [st.source, { backgroundColor: t.card, borderColor: t.border, opacity: pressed ? 0.85 : 1 }]}
+        style={({ pressed }) => [st.source, elevation(t), { backgroundColor: t.card, borderColor: t.hairline, transform: [{ scale: pressed ? 0.99 : 1 }] }]}
       >
-        <View style={[st.icon, { backgroundColor: t.primarySoft }]}>
-          <Ionicons name="document-attach-outline" size={22} color={t.primary} />
-        </View>
+        <IconCircle name="document-attach-outline" tone="solid" size={46} />
         <View style={{ flex: 1 }}>
           <Text style={{ color: t.text, fontWeight: "700", fontSize: 16 }}>Import from the SD card</Text>
           <Text style={{ color: t.muted, marginTop: 2 }}>Choose the device’s session file (.jsonl)</Text>
@@ -173,25 +165,23 @@ export default function VitalsScreen() {
         {busy === "file" ? <ActivityIndicator color={t.primary} /> : <Ionicons name="chevron-forward" size={20} color={t.muted} />}
       </Pressable>
 
-      <View style={[st.card, { backgroundColor: t.card, borderColor: t.border }]}>
-        <SectionLabel>No device yet?</SectionLabel>
-        <Body muted>Try a simulated recording to see how the analysis and report work.</Body>
+      <Section icon="flask-outline" title="No device yet?" subtitle="Try a simulated recording to see the analysis and report">
         <Chips options={SCENARIOS} selected={[scenario]} onToggle={setScenario} />
-        <Button title="Analyse a sample" variant="secondary" onPress={runDemo} loading={busy === "demo"} disabled={busy !== null} />
-      </View>
+        <Button title="Analyse a sample" icon="play" variant="secondary" onPress={runDemo} loading={busy === "demo"} disabled={busy !== null} />
+      </Section>
 
       <InfoBox>Live monitoring over a USB cable works on the website, in Chrome or Edge on a computer.</InfoBox>
       <ErrorBox message={error} />
 
       {showHistory && history?.length ? (
-        <View style={{ gap: 8 }}>
-          <SectionLabel>Recent sessions</SectionLabel>
+        <View style={{ gap: 10 }}>
+          <SectionTitle>Recent sessions</SectionTitle>
           {history.map((row) => (
             <Pressable
               key={row.id}
               onPress={() => router.push({ pathname: "/care/record/[id]", params: { id: row.id } })}
               accessibilityRole="button"
-              style={[st.histRow, { backgroundColor: t.card, borderColor: t.border }]}
+              style={[st.histRow, elevation(t), { backgroundColor: t.card, borderColor: t.hairline }]}
             >
               <View style={[st.dot, { backgroundColor: toneColors(t, SEVERITY_COPY[row.severity].tone).fg }]} />
               <View style={{ flex: 1 }}>
@@ -214,8 +204,8 @@ const st = StyleSheet.create({
   eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1.6 },
   title: { fontSize: 25, fontWeight: "800", letterSpacing: -0.3 },
   card: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 12 },
-  source: { flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderRadius: 18, padding: 16 },
+  source: { flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderRadius: 22, padding: 16 },
   icon: { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
-  histRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 16, padding: 12 },
+  histRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 20, padding: 14 },
   dot: { width: 10, height: 10, borderRadius: 5 },
 });

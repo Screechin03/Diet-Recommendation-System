@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams, type Href } from "expo-router";
-import { Body, Button, Card, ErrorBox, InfoBox, Screen } from "@/components/ui";
+import { Body, Button, Card, ErrorBox, InfoBox, Screen, SearchField } from "@/components/ui";
 import { Avatar, Pill } from "@/components/Care";
 import { useTheme } from "@/components/theme";
 import { useCareLinks } from "@/lib/careHooks";
@@ -51,13 +51,7 @@ export default function ChooseDoctorScreen() {
         You’re connected as soon as you choose. Your doctor can then see your saved records, review them, send diet instructions and message you.
         {current ? ` ${doctorName(current.full_name)} will stop seeing your records when you switch.` : ""}
       </Body>
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search name, hospital or city"
-        placeholderTextColor={t.muted}
-        style={[st.search, { backgroundColor: t.input, borderColor: t.border, color: t.text }]}
-      />
+      <SearchField value={query} onChangeText={setQuery} placeholder="Search name, hospital or city" />
       <ErrorBox message={error} />
       {doctors === null && !error ? <ActivityIndicator color={t.primary} /> : null}
       {doctors && !shown.length ? <InfoBox>{doctors.length ? "No doctors match your search." : "No doctors have joined yet."}</InfoBox> : null}

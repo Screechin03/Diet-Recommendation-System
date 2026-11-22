@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
 import { Text, View } from "react-native";
 import { router } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
-  Body,
   Button,
   Card,
   Chips,
@@ -10,12 +10,17 @@ import {
   Disclaimer,
   ErrorBox,
   Field,
+  FieldLabel,
   H2,
+  IconCircle,
   InfoBox,
   NumberField,
+  PageHeader,
   Row,
   Screen,
-  SectionLabel,
+  Section,
+  Segmented,
+  Stat,
   ToggleRow,
 } from "@/components/ui";
 import { RecipeCard } from "@/components/RecipeCard";
@@ -177,11 +182,22 @@ export default function PlannerScreen() {
   }
 
   const corrections = [...(meta?.ingredient_corrections ?? []), ...(meta?.substitutions ?? [])];
+  const bmi = profile.height > 0 ? profile.pre_pregnancy_weight / (profile.height / 100) ** 2 : 0;
+  const gain = profile.current_weight - profile.pre_pregnancy_weight;
+  const trimester = profile.pregnancy_month <= 3 ? 1 : profile.pregnancy_month <= 6 ? 2 : 3;
 
   return (
-    <Screen>
+    <Screen safeTop>
+      <PageHeader eyebrow="Diet plan" title="Meals for you" subtitle="Recipes matched to your month, your health and what you feel like eating." />
+      <Row gap={10}>
+        <Stat label="Month" value={String(profile.pregnancy_month)} caption={`Trimester ${trimester}`} tone="rose" />
+        <Stat label="BMI before" value={bmi ? bmi.toFixed(1) : "–"} caption={!bmi ? "" : bmi < 18.5 ? "Under" : bmi < 25 ? "Healthy" : bmi < 30 ? "Over" : "High"} />
+        <Stat label="Gained" value={`${gain >= 0 ? "+" : ""}${gain.toFixed(1)}`} unit="kg" caption="since before" />
+      </Row>
       {di ? (
-        <View style={{ backgroundColor: t.infoSoft, borderRadius: 14, padding: 14, gap: 4 }}>
+        <View style={{ backgroundColor: t.infoSoft, borderRadius: 20, padding: 16, gap: 6, flexDirection: "row" }}>
+          <Ionicons name="medical" size={20} color={t.info} style={{ marginTop: 1 }} />
+          <View style={{ flex: 1, gap: 4 }}>
           <Text style={{ color: t.info, fontWeight: "800" }}>{doctorName(di.updated_by_name)}’s instructions are applied automatically</Text>
           <Text style={{ color: t.text }}>
             {[
@@ -193,11 +209,11 @@ export default function PlannerScreen() {
               .join(" · ")}
           </Text>
           {di.note ? <Text style={{ color: t.text, fontStyle: "italic" }}>“{di.note}”</Text> : null}
+          </View>
         </View>
       ) : null}
-      <Card>
-        <SectionLabel>Your pregnancy</SectionLabel>
-        <Body>Month of pregnancy</Body>
+      <Section icon="body-outline" title="Your pregnancy" subtitle="Saved on this phone for next time">
+        <FieldLabel>Month of pregnancy</FieldLabel>
         <Chips options={MONTHS} selected={[profile.pregnancy_month]} onToggle={(m) => update({ pregnancy_month: m })} />
         <Row>
           <Col>
@@ -227,16 +243,11 @@ export default function PlannerScreen() {
             />
           </Col>
         </Row>
-        <Body>Activity level</Body>
-        <Chips
-          options={ACTIVITY}
-          selected={[profile.activity_level ?? "moderate"]}
-          onToggle={(activity_level) => update({ activity_level })}
-        />
-      </Card>
+        <FieldLabel>Activity level</FieldLabel>
+        <Segmented options={ACTIVITY} value={profile.activity_level ?? "moderate"} onChange={(activity_level) => update({ activity_level })} />
+      </Section>
 
-      <Card>
-        <SectionLabel>Health conditions</SectionLabel>
+      <Section icon="fitness-outline" title="Health conditions" subtitle="Recipes are adjusted for each one you switch on">
         {CONDITIONS.map((c) => (
           <ToggleRow
             key={c.key}
@@ -245,11 +256,10 @@ export default function PlannerScreen() {
             onChange={(v) => update({ [c.key]: v } as Partial<PregnancyInfo>)}
           />
         ))}
-      </Card>
+      </Section>
 
-      <Card>
-        <SectionLabel>Food preferences</SectionLabel>
-        <Body>Dietary restrictions</Body>
+      <Section icon="restaurant-outline" title="Food preferences">
+        <FieldLabel>Dietary restrictions</FieldLabel>
         <Chips options={RESTRICTIONS} selected={profile.dietary_restrictions ?? []} onToggle={toggleRestriction} />
         <Field
           label="Ingredients you want to use"
@@ -266,12 +276,12 @@ export default function PlannerScreen() {
           onChangeText={setAversions}
           autoCapitalize="none"
         />
-        <Body>Number of recipes</Body>
-        <Chips options={COUNTS} selected={[count]} onToggle={setCount} />
-        <ToggleRow label="AI summary" hint="Plain-language explanation of why these recipes fit" value={useAi} onChange={setUseAi} />
-      </Card>
+        <FieldLabel>Number of recipes</FieldLabel>
+        <Segmented options={COUNTS} value={count} onChange={setCount} />
+        <ToggleRow label="Explain the picks" hint="A short plain-language note on why these recipes fit you" value={useAi} onChange={setUseAi} />
+      </Section>
 
-      <Button title="Get my recipes" onPress={submit} loading={loading} />
+      <Button title="Get my recipes" icon="restaurant" onPress={submit} loading={loading} />
       <ErrorBox message={error} />
 
       {corrections.length ? (
@@ -303,7 +313,10 @@ export default function PlannerScreen() {
                 }
               />
             ) : null}
-            <H2>{recipes.length} recommended recipes</H2>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 6 }}>
+              <IconCircle name="checkmark-done" size={36} tone="solid" />
+              <H2>{`${recipes.length} recipes for you`}</H2>
+            </View>
             {recipes.map((r, i) => (
               <RecipeCard
                 key={`${r.Name}-${i}`}

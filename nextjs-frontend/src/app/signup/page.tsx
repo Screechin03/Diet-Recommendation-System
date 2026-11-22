@@ -87,13 +87,13 @@ export default function SignupPage() {
   if (user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-14">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="rounded-3xl border border-zinc-200/80 bg-white p-8 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
           <h1 className="text-2xl font-semibold tracking-tight">Your account is active</h1>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
             You can now save recipes and view your recommendation history.
           </p>
           <div className="mt-6 flex gap-3">
-            <Link href="/recipe-finder" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
+            <Link href="/recipe-finder" className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500">
               Find recipes
             </Link>
             <Link href="/saved-recipes" className="rounded-lg border border-zinc-200 px-4 py-2 text-sm dark:border-zinc-700">
@@ -107,7 +107,7 @@ export default function SignupPage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-14">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="rounded-3xl border border-zinc-200/80 bg-white p-8 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
         <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
           Sign up with email and password to save recipes and view your history.
@@ -198,7 +198,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="h-10 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            className="h-11 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-lift transition hover:bg-emerald-500 disabled:opacity-60"
           >
             {loading ? "Creating account..." : "Sign up"}
           </button>

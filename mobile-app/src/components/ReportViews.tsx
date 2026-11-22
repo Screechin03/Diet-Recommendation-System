@@ -9,14 +9,14 @@ import {
   type LabTest,
   type OcrResult,
 } from "@/lib/report";
-import { useTheme, type Theme } from "./theme";
+import { elevation, useTheme, type Theme } from "./theme";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
 function SectionCard({ icon, title, count, children }: { icon: IconName; title: string; count?: number; children: ReactNode }) {
   const t = useTheme();
   return (
-    <View style={[s.card, { backgroundColor: t.card, borderColor: t.border }]}>
+    <View style={[s.card, elevation(t), { backgroundColor: t.card, borderColor: t.hairline }]}>
       <View style={s.sectionHead}>
         <Ionicons name={icon} size={17} color={t.muted} />
         <Text style={[s.sectionTitle, { color: t.text }]}>{title}</Text>
@@ -71,7 +71,7 @@ export function ReportCard({ report }: { report: ExtractedReport }) {
 
   return (
     <View style={{ gap: 14 }}>
-      <View style={[s.card, { backgroundColor: t.primarySoft, borderColor: t.primarySoft }]}>
+      <View style={[s.card, elevation(t), { backgroundColor: t.primarySoft, borderColor: t.primarySoft }]}>
         <Text style={[s.eyebrow, { color: t.primary }]}>{humanizeDocType(doc.type).toUpperCase()}</Text>
         {meta.filter(([, , v]) => v).map(([icon, label, value]) => (
           <View key={label} style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
@@ -177,7 +177,7 @@ export function DietPlanCard({ plan }: { plan: DietPlan }) {
     </View>
   );
   return (
-    <View style={[s.card, { backgroundColor: t.card, borderColor: t.border, padding: 0, overflow: "hidden" }]}>
+    <View style={[s.card, elevation(t), { backgroundColor: t.card, borderColor: t.hairline, padding: 0, overflow: "hidden" }]}>
       <View style={{ padding: 16, gap: 6, backgroundColor: t.muted2 }}>
         <Text style={[s.eyebrow, { color: t.primary }]}>YOUR DIET PLAN</Text>
         <Text style={{ color: t.text, fontSize: 18, fontWeight: "700" }}>{plan.title}</Text>
@@ -241,7 +241,7 @@ export function ScanCard({ ocr }: { ocr: OcrResult }) {
   const [w, h] = ocr.image_size;
 
   return (
-    <View style={[s.card, { backgroundColor: t.card, borderColor: t.border, padding: 0, overflow: "hidden" }]}>
+    <View style={[s.card, elevation(t), { backgroundColor: t.card, borderColor: t.hairline, padding: 0, overflow: "hidden" }]}>
       <View style={[s.scanHead, { borderColor: t.border }]}>
         <View style={[s.metaIcon, { backgroundColor: t.text }]}>
           <Ionicons name="scan-outline" size={16} color={t.card} />
@@ -330,7 +330,7 @@ export function ScanCard({ ocr }: { ocr: OcrResult }) {
 
 const s = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 12 },
-  inner: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 8 },
+  inner: { borderWidth: 1, borderRadius: 18, padding: 12, gap: 8 },
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   sectionTitle: { fontSize: 15, fontWeight: "700" },
   count: { borderRadius: 999, paddingHorizontal: 7, paddingVertical: 1 },
@@ -339,17 +339,17 @@ const s = StyleSheet.create({
   body: { fontSize: 14.5, lineHeight: 21 },
   dot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
   chip: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  metaIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  callout: { flexDirection: "row", gap: 10, borderRadius: 16, padding: 14 },
+  metaIcon: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  callout: { flexDirection: "row", gap: 10, borderRadius: 20, padding: 14 },
   testRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
   mark: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", marginTop: 1 },
-  meal: { flexDirection: "row", gap: 10, borderRadius: 12, padding: 12, alignItems: "flex-start" },
+  meal: { flexDirection: "row", gap: 10, borderRadius: 14, padding: 12, alignItems: "flex-start" },
   num: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   scanHead: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   zoomHint: { position: "absolute", right: 10, top: 10, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 999, padding: 6 },
   bar: { height: 6, borderRadius: 3, overflow: "hidden" },
   barFill: { height: 6, borderRadius: 3 },
-  textBox: { borderRadius: 12, padding: 12, gap: 6 },
+  textBox: { borderRadius: 14, padding: 12, gap: 6 },
   modal: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)" },
   close: { position: "absolute", top: 54, right: 18, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 999, padding: 8 },
 });

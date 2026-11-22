@@ -33,7 +33,7 @@ export function TrendChart({
   const ticks = [lo, (lo + hi) / 2, hi];
 
   return (
-    <figure className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+    <figure className="rounded-3xl border border-zinc-200/80 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={`${label} over the session`}>
         <text x={pad.l} y={14} className="fill-zinc-900 text-[12px] font-semibold dark:fill-zinc-100">{label}</text>
         {last ? (

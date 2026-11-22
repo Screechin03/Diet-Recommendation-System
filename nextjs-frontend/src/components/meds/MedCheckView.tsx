@@ -38,7 +38,7 @@ function TrimesterStrip({ tiers, current }: { tiers: Record<"t1" | "t2" | "t3", 
 function MedicineCard({ m, trimester }: { m: MedResult; trimester: number | null }) {
   const many = m.ingredients.length > 1;
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+    <article className="rounded-3xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 font-semibold">
@@ -117,7 +117,7 @@ function InteractionRow({ x, result }: { x: MedInteraction; result: MedCheckResu
 
 function Section({ title, children, note }: { title: string; children: ReactNode; note?: string }) {
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+    <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
       <h3 className="text-sm font-semibold">{title}</h3>
       {note ? <p className="mt-0.5 text-xs text-zinc-500">{note}</p> : null}
       <div className="mt-3">{children}</div>
@@ -145,7 +145,7 @@ export function MedCheckView({ result, compact = false }: { result: MedCheckResu
       </div>
 
       {stopWarn.length ? (
-        <div className="flex gap-3 rounded-2xl border border-rose-200 bg-white p-4 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-zinc-950 dark:text-rose-200">
+        <div className="flex gap-3 rounded-3xl border border-rose-200 bg-white p-4 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-zinc-900/60 dark:text-rose-200 shadow-soft">
           <AlertIcon size={18} className="mt-0.5 shrink-0" />
           <span>
             <b>Don’t stop {stopWarn.map((m) => m.label).join(", ")} suddenly.</b> Stopping some medicines on your own can be more dangerous than

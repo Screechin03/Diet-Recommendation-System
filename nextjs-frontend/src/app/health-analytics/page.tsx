@@ -5,6 +5,7 @@ import { ShareWithDoctor } from "@/components/care/ShareWithDoctor";
 import { riskRecord } from "@/lib/careRecords";
 import type { HealthAnalyticsInput, RiskPredictionOut } from "@/lib/types";
 import { safeJson } from "@/lib/utils";
+import { PageIntro } from "@/components/PageIntro";
 
 const inputClass =
   "h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:ring-zinc-700";
@@ -187,7 +188,7 @@ function HorizontalBars({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
       <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</div>
       <div className="mt-4">{content}</div>
     </div>
@@ -253,7 +254,7 @@ function SectionCard({
 }) {
   const list = Array.isArray(items) ? (items as unknown[]) : [];
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
       <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</div>
       {list.length ? (
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
@@ -442,12 +443,7 @@ export default function HealthAnalyticsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Health Analytics</h1>
-          <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-300">
-            Predict pregnancy risk using the backend ML model.
-          </p>
-        </div>
+<PageIntro eyebrow="Risk check" title="How are you doing?" subtitle="Enter today’s readings. Our risk model flags anything worth a call to your doctor." icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>} />
         <div className="flex gap-2">
           <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
             <input
@@ -466,7 +462,7 @@ export default function HealthAnalyticsPage() {
           <button
             onClick={assess}
             disabled={loading}
-            className="h-10 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            className="h-11 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-lift transition hover:bg-emerald-500 disabled:opacity-60"
           >
             {loading ? "Assessing…" : "Assess risk"}
           </button>
@@ -474,7 +470,7 @@ export default function HealthAnalyticsPage() {
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[420px_1fr]">
-        <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-1">
               <span className="text-sm font-medium">Age</span>
@@ -578,7 +574,7 @@ export default function HealthAnalyticsPage() {
 
         <section className="grid gap-4">
           {refined ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 text-sm shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
               <div className="text-base font-semibold">{String(refined.title ?? "Refined summary")}</div>
               {refined.summary ? (
                 <p className="mt-2 text-zinc-700 dark:text-zinc-300">{String(refined.summary)}</p>
@@ -603,7 +599,7 @@ export default function HealthAnalyticsPage() {
                 build={() => riskRecord(assessedInput ?? health, result, refined)}
                 what="this risk check"
               />
-              <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="min-w-60">
                     <div className="text-base font-semibold">Risk assessment</div>
@@ -665,7 +661,7 @@ export default function HealthAnalyticsPage() {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-3">
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
                   <div className="flex items-baseline justify-between gap-3">
                     <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Risk trend</div>
                     <div className="flex items-center gap-3">
@@ -689,7 +685,7 @@ export default function HealthAnalyticsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
                   <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Vitals trends</div>
                   <div className="mt-4 grid gap-3">
                     <div>
@@ -713,7 +709,7 @@ export default function HealthAnalyticsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
                   <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Out-of-range signals</div>
                   <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                     Highlights which vitals are outside typical ranges (not medical advice).
@@ -731,7 +727,7 @@ export default function HealthAnalyticsPage() {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
                   <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Vitals overview</div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <MetricBar label="BMI" value={asNumber(health.bmi, 22)} min={15} max={45} normal={[18.5, 24.9]} />
@@ -767,7 +763,7 @@ export default function HealthAnalyticsPage() {
                 </div>
               </div>
 
-              <details className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <details className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
                 <summary className="cursor-pointer text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                   Show raw response (debug)
                 </summary>
@@ -777,13 +773,13 @@ export default function HealthAnalyticsPage() {
               </details>
             </>
           ) : (
-            <div className="rounded-2xl border border-dashed border-zinc-300 p-10 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+            <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 p-10 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
               Run an assessment to see results.
             </div>
           )}
 
           {modelInfo ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
               <div className="text-base font-semibold">Model performance</div>
               {modelInfo?.error ? (
                 <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
@@ -820,7 +816,7 @@ export default function HealthAnalyticsPage() {
                       valueLabel={(v) => v.toFixed(3)}
                       maxItems={10}
                     />
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                    <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
                       <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Notes</div>
                       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
                         <li>Importance is model-specific and may vary by algorithm.</li>

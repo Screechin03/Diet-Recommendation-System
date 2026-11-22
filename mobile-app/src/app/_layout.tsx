@@ -40,8 +40,8 @@ function RootNavigator() {
         <Stack.Screen name="(doctor)" options={{ headerShown: false }} />
         <Stack.Screen name="saved" options={{ title: "Saved recipes" }} />
         <Stack.Screen name="history" options={{ title: "Recommendation history" }} />
-        <Stack.Screen name="vitals" options={{ title: "Vital signs" }} />
-        <Stack.Screen name="medicines" options={{ title: "Medicine safety" }} />
+        <Stack.Screen name="vitals" options={{ title: "" }} />
+        <Stack.Screen name="medicines" options={{ title: "" }} />
         <Stack.Screen name="care/doctors" options={{ title: "Choose your doctor" }} />
         <Stack.Screen name="care/record/[id]" options={{ title: "Record" }} />
         <Stack.Screen name="care/messages" options={{ title: "Messages" }} />

@@ -192,7 +192,7 @@ export default function PrescriptionReaderPage() {
           />
 
           {mode === "full" ? (
-            <details className="group rounded-2xl border border-zinc-200 bg-white open:pb-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <details className="group rounded-3xl border border-zinc-200/80 bg-white open:pb-4 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
               <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium">
                 Personalise the diet plan
                 <span className="text-xs text-zinc-400 transition group-open:rotate-180">▾</span>
@@ -236,7 +236,7 @@ export default function PrescriptionReaderPage() {
           </button>
 
           {loading ? (
-            <ol className="space-y-2 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950" aria-live="polite">
+            <ol className="space-y-2 rounded-3xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft" aria-live="polite">
               {stages.map((s, i) => (
                 <li key={s.label} className="flex items-center gap-3 text-sm">
                   <span
@@ -288,7 +288,7 @@ export default function PrescriptionReaderPage() {
                 <ShareWithDoctor key={runId} build={() => reportRecord(result.report!, medCheck)} file={file} what="this report" />
               ) : null}
               {result.report?.success && !hasStructured ? (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                <div className="rounded-3xl border border-zinc-200/80 bg-white p-5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300 shadow-soft">
                   No medicines or test results were found in this document.
                 </div>
               ) : null}
@@ -312,7 +312,7 @@ function EmptyState() {
     ["One page at a time", "For PDFs, the first page is scanned for handwriting."],
   ];
   return (
-    <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/60 p-8 dark:border-zinc-800 dark:bg-zinc-950/40">
+    <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 bg-white/60 p-8 dark:border-zinc-800 dark:bg-zinc-950/40">
       <div className="flex items-center gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
           <FileIcon size={20} />

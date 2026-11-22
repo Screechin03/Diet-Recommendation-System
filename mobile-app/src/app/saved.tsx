@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator } from "react-native";
-import { useFocusEffect } from "expo-router";
-import { ErrorBox, InfoBox, Screen } from "@/components/ui";
+import { router, useFocusEffect } from "expo-router";
+import { EmptyState, ErrorBox, InfoBox, Screen } from "@/components/ui";
 import { RecipeCard } from "@/components/RecipeCard";
 import { useAuth } from "@/lib/auth";
 import { getSavedRecipes, removeSavedRecipe, type SavedRecipeRow } from "@/lib/userData";
@@ -36,7 +36,9 @@ export default function SavedScreen() {
     <Screen>
       <ErrorBox message={error} />
       {!rows && !error ? <ActivityIndicator /> : null}
-      {rows && !rows.length ? <InfoBox>No saved recipes yet. Tap “Save recipe” on any recommendation.</InfoBox> : null}
+      {rows && !rows.length ? (
+        <EmptyState icon="heart-outline" title="No saved recipes yet" text="Tap “Save recipe” on any recommendation and it will wait for you here." action="Plan meals" onAction={() => router.navigate("/planner")} />
+      ) : null}
       {rows?.map((row) => <RecipeCard key={row.id} recipe={row.recipe} onRemove={() => remove(row.id)} />)}
     </Screen>
   );

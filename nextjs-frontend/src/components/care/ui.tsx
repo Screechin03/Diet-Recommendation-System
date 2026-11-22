@@ -142,7 +142,7 @@ export function Notice({
 
 export function EmptyState({ icon, title, text, action }: { icon?: ReactNode; title: string; text?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-dashed border-zinc-300 bg-white/60 px-6 py-10 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
+    <div className="flex flex-col items-center rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 bg-white/60 px-6 py-10 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
       {icon ? <span className="mb-3 text-zinc-400">{icon}</span> : null}
       <div className="font-semibold">{title}</div>
       {text ? <p className="mt-1 max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-400">{text}</p> : null}

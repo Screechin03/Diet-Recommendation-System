@@ -143,7 +143,7 @@ export default function VitalsPage() {
             ))}
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="space-y-3 rounded-3xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
             {source === "demo" ? (
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Sample to play</span>
@@ -199,7 +199,7 @@ export default function VitalsPage() {
 
           <div className={result ? "hidden" : ""}>
             {source === "file" ? (
-              <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
                 <h3 className="text-base font-semibold">Import a recording from the SD card</h3>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
                   Put the device’s SD card in your computer and choose the session file (named like <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">SESSION_20261106_0930.jsonl</code>).
@@ -216,7 +216,7 @@ export default function VitalsPage() {
                     </button>
                   </div>
                 ) : (
-                  <label className="mt-4 flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-zinc-300 px-6 py-8 text-center hover:border-emerald-400 hover:bg-emerald-50/40 dark:border-zinc-700 dark:hover:bg-emerald-950/20">
+                  <label className="mt-4 flex cursor-pointer flex-col items-center rounded-3xl border-2 border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 px-6 py-8 text-center hover:border-emerald-400 hover:bg-emerald-50/40 dark:border-zinc-700 dark:hover:bg-emerald-950/20">
                     <UploadIcon size={22} className="text-emerald-600" />
                     <span className="mt-2 text-sm font-semibold">Choose a session file</span>
                     <span className="text-xs text-zinc-500">.jsonl or .txt, up to 30 minutes</span>
@@ -259,14 +259,14 @@ export default function VitalsPage() {
               </div>
               {historyError ? <p className="text-sm text-rose-600">{historyError}</p> : null}
               {history && !history.length ? (
-                <p className="rounded-2xl border border-dashed border-zinc-300 p-5 text-sm text-zinc-500 dark:border-zinc-800">
+                <p className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 p-5 text-sm text-zinc-500 dark:border-zinc-800">
                   No saved sessions yet. After a measurement, choose “Just save” or ask your doctor to review it.
                 </p>
               ) : null}
               <ul className="space-y-2">
                 {history?.map((row) => (
                   <li key={row.id}>
-                    <Link href={`/care/records/${row.id}`} className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-3 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900">
+                    <Link href={`/care/records/${row.id}`} className="flex items-center gap-3 rounded-3xl border border-zinc-200/80 bg-white p-3 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-900 shadow-soft">
                       <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT[SEVERITY_COPY[row.severity].tone]}`} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{row.summary ?? row.title}</span>

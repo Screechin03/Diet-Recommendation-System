@@ -16,7 +16,7 @@ import {
 
 function Section({ icon, title, count, children }: { icon: ReactNode; title: string; count?: number; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+    <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
       <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
         <span className="text-zinc-400">{icon}</span>
         {title}
@@ -194,7 +194,7 @@ export function ReportView({ report }: { report: ExtractedReport }) {
 
 export function DietPlanView({ plan }: { plan: DietPlan }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <section className="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
       <div className="border-b border-zinc-100 bg-zinc-50/70 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">Your diet plan</div>
         <h3 className="mt-1 text-lg font-semibold tracking-tight">{plan.title}</h3>

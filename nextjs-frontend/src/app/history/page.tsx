@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RecipeCard } from "@/components/RecipeCard";
 import { useAuth } from "@/components/AuthProvider";
 import { getRecipeHistoryForUser, type RecipeHistoryRow } from "@/lib/supabaseUserData";
+import { PageIntro } from "@/components/PageIntro";
 
 export default function HistoryPage() {
   const { user, loading } = useAuth();
@@ -43,13 +44,13 @@ export default function HistoryPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-14">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="rounded-3xl border border-zinc-200/80 bg-white p-8 shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
           <h1 className="text-2xl font-semibold tracking-tight">Recipe history</h1>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
             Log in to see recommendations generated from your previous searches.
           </p>
           <div className="mt-6 flex gap-3">
-            <Link href="/login" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
+            <Link href="/login" className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500">
               Log in
             </Link>
             <Link href="/signup" className="rounded-lg border border-zinc-200 px-4 py-2 text-sm dark:border-zinc-700">
@@ -64,12 +65,7 @@ export default function HistoryPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Recipe history</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-            Every recipe returned from your planner/finder searches.
-          </p>
-        </div>
+<PageIntro eyebrow="History" title="Recipe history" subtitle="Every recipe from your planner and finder searches, newest first." icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>} />
       </div>
 
       {error ? (
@@ -81,7 +77,7 @@ export default function HistoryPage() {
       {records === null && !error ? (
         <div className="mt-6 text-sm text-zinc-600 dark:text-zinc-300">Loading history...</div>
       ) : (records ?? []).length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-zinc-300 p-10 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+        <div className="mt-6 rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 p-10 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
           No history yet. Generate recipes from Diet Planner or Recipe Finder while logged in.
         </div>
       ) : (

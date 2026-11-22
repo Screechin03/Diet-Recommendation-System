@@ -59,7 +59,7 @@ export function RecordList({
       {!shown.length ? (
         typeof empty === "string" ? <EmptyState title={empty} /> : empty
       ) : (
-        <ul className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:divide-zinc-900 dark:border-zinc-800 dark:bg-zinc-950">
+        <ul className="divide-y divide-zinc-100 overflow-hidden rounded-3xl border border-zinc-200/80 bg-white dark:divide-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
           {shown.map((r) => {
             const n = unread[r.id] ?? 0;
             return (

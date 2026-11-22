@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useTheme } from "./theme";
+import { elevation, useTheme } from "./theme";
 import { Body, Bullets, Button, Card, H2, InfoBox, SectionLabel } from "./ui";
 import { Pill, Thread, toneColors, type Tone } from "./Care";
 import { DietPlanCard, ReportCard } from "./ReportViews";
@@ -77,7 +77,7 @@ function ReportRecord({ record }: { record: HealthRecord }) {
   return (
     <View style={{ gap: 12 }}>
       {record.file_path ? (
-        <Pressable onPress={openOriginal} accessibilityRole="button" style={[s.fileRow, { backgroundColor: t.card, borderColor: t.border }]}>
+        <Pressable onPress={openOriginal} accessibilityRole="button" style={[s.fileRow, elevation(t), { backgroundColor: t.card, borderColor: t.hairline }]}>
           <Ionicons name="document-outline" size={24} color={t.muted} />
           <View style={{ flex: 1 }}>
             <Text numberOfLines={1} style={{ color: t.text, fontWeight: "700" }}>{record.file_name ?? "Original document"}</Text>
@@ -462,12 +462,12 @@ export function DietInstructionsEditor({ patientId, current, onSaved }: { patien
 }
 
 const s = StyleSheet.create({
-  fileRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 16, padding: 14 },
-  banner: { borderRadius: 16, padding: 14, gap: 6 },
+  fileRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 20, padding: 14 },
+  banner: { borderRadius: 20, padding: 14, gap: 6 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  measure: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, minWidth: "47%", flexGrow: 1 },
-  verdict: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1.5, borderRadius: 14, padding: 12 },
-  note: { borderWidth: 1, borderRadius: 12, minHeight: 90, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, fontSize: 15, textAlignVertical: "top" },
-  doctorBtn: { height: 50, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  measure: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, minWidth: "47%", flexGrow: 1 },
+  verdict: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1.5, borderRadius: 18, padding: 12 },
+  note: { borderWidth: 1, borderRadius: 14, minHeight: 90, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, fontSize: 15, textAlignVertical: "top" },
+  doctorBtn: { height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
 });

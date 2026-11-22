@@ -146,7 +146,7 @@ export default function MedicinesPage() {
 
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
         <aside className="space-y-4 lg:sticky lg:top-6">
-          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="space-y-4 rounded-3xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-soft">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Month of pregnancy</span>
               <select
@@ -189,7 +189,7 @@ export default function MedicinesPage() {
               <ShareWithDoctor key={runId} build={() => medCheckRecord(result)} what="this medicine check" />
             </>
           ) : (
-            <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/60 p-8 dark:border-zinc-800 dark:bg-zinc-950/40">
+            <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/10 bg-white/60 p-8 dark:border-zinc-800 dark:bg-zinc-950/40">
               <div className="font-semibold">What we check</div>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {[

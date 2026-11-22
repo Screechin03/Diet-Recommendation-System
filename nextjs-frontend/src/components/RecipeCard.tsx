@@ -94,7 +94,7 @@ export function RecipeCard({ recipe, onSave, isSaving = false, isSaved = false }
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-soft dark:border-zinc-800 dark:bg-zinc-900/60">
       <div className="relative h-44 w-full bg-zinc-100 dark:bg-zinc-900">
         <Image
           src={src}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { Body, Button, Card, ErrorBox, Field, Screen, SectionLabel, ToggleRow } from "@/components/ui";
+import { Body, Button, Card, ErrorBox, Field, Screen, Section, SectionLabel, ToggleRow } from "@/components/ui";
 import { Avatar } from "@/components/Care";
 import { useTheme } from "@/components/theme";
 import { useAuth } from "@/lib/auth";
@@ -65,8 +65,7 @@ export default function DoctorProfileScreen() {
         </View>
         <Body muted>This is how patients see you when they choose their doctor.</Body>
       </Card>
-      <Card>
-        <SectionLabel>Public profile</SectionLabel>
+      <Section icon="id-card-outline" title="Public profile" subtitle="What patients see when choosing a doctor">
         <Field label="Full name" value={form.full_name} onChangeText={set("full_name")} maxLength={120} />
         <Field label="Speciality" value={form.specialty} onChangeText={set("specialty")} maxLength={120} />
         <Field label="Hospital or clinic" value={form.hospital} onChangeText={set("hospital")} maxLength={160} />
@@ -84,16 +83,16 @@ export default function DoctorProfileScreen() {
         <ErrorBox message={error} />
         {saved ? <Text style={{ color: t.success }}>Saved</Text> : null}
         <Button title="Save profile" onPress={save} loading={busy} />
-      </Card>
-      <Card>
-        <SectionLabel>Account</SectionLabel>
+      </Section>
+      <Section icon="person-circle-outline" title="Account">
         <Body muted>{user.email}</Body>
         <Button
           title="Log out"
           variant="danger"
+          icon="log-out-outline"
           onPress={() => signOut().catch(() => {})}
         />
-      </Card>
+      </Section>
     </Screen>
   );
 }
