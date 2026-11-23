@@ -18,6 +18,7 @@ import type {
 } from "./types";
 import { friendlyError, type HandwritingApiResponse, type PrescriptionApiResponse } from "./report";
 import type { VitalsAnalysis } from "./vitals";
+import { File as FsFile } from "expo-file-system";
 
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -98,8 +99,9 @@ export function predictRisk(health: HealthAnalyticsInput): Promise<RiskPredictio
 
 function uploadForm(file: PickedFile): FormData {
   const form = new FormData();
-  // React Native's FormData accepts {uri,name,type} file descriptors.
-  form.append("file", { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob);
+  // Expo's fetch (SDK 52+) rejects the old {uri,name,type} descriptor ("Unsupported FormDataPart
+  // implementation"); it uploads expo-file-system File objects instead. The server reads the type from the name.
+  form.append("file", new FsFile(file.uri) as unknown as Blob, file.name);
   return form;
 }
 
